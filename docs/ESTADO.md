@@ -51,6 +51,8 @@ máquina.
 | 12 | O Kotlin gerado é reprodutível e está travado | `node design/tokens/gerar-kotlin.mjs` com o pacote padrão do JSON reproduz byte a byte os arquivos de referência do commit `8367859`: `ReboTokensGerado.kt` com 12.467 bytes e sha256 `23ed806352f78ff4889c8ae678cb5dda9990524cc42cf876ebacb84f1595b4e0`, `ReboTextos.kt` com 1.976 bytes e sha256 `f30e599fb0890fb5fa5c598958ad53da4d9fbb4ada86b503c6258d77860ca9c6`; com `--pacote net.dynv6.rebobina.ui.tokens` saem 12.466 B `1ce69352...` e 1.975 B `999e520f...`, com só a linha do pacote diferente. `node scripts/conferir-tokens.mjs` sai 0 com `trava dos tokens: ok, versao 1.0.7`, e renomear o `object ReboTextos` para `ReboTextosQuebrado` derruba a tarefa `:composeApp:conferirTokens` do Gradle apontando a primeira linha diferente (9) |
 | 13 | O IPA do run #7 leva o `commonMain` com os dois gerados | run #7 (id 45107159058), commit `61ddda1cc2671c0ad5195c21f691db8e85c0f4c3`, `success` em 3m36s, artefato `rebobina-ios-ipa-7` com 9.121.993 bytes e digest `sha256:bd5d00744d2af8b3ad1c72db8563a849a23b70044436576aba956df505cffc15`, `Rebobina.ipa` de 9.169.810 bytes e sha256 `ff3f748a43b4b25d54a3a4cd7192c358416968900b839d9a3846d4ce35d54a5e`, binário `Payload/Rebobina.app/Rebobina` de 24.882.120 bytes, Mach-O 64 bits arm64; passos "Compilar Kotlin (iOS arm64)" 12 s e "Xcode archive sem assinatura" 157 s, ambos `success`, e o passo "Prova extra do commonMain no alvo Android" com `ANDROID_COMPILOU=sim` |
 | 14 | A 1.0.7 não mexeu em valor de desenho | comparadas as 397 folhas do JSON anterior com as 397 da 1.0.7: 0 removidas, 0 novas e 4 alteradas, todas de prosa e meta (`meta.versao`, `meta.historico`, `canonico.conferidor.oQueConfere` e `geracao.kotlin.convencao`); os dois `.kt` gerados diferem do commit anterior só nas duas linhas de cabeçalho com a versão e o sha256 do JSON, e com a linha do pacote normalizada o corpo é idêntico ao arquivo de referência do canônico |
+| 15 | O IPA do run #8 leva os tokens 1.0.7 e o conferidor novo | run #8 (id 45112444059), commit `c6252aaf3b3d3c159e7cbedbdd16befb14f9c2aa`, `success` em 4m01s, artefato `rebobina-ios-ipa-8` com 9.121.987 bytes e digest `sha256:4bea81d045dd947d5c7d7d22a12575611a7a75d9697b7a362592b2f0b09c5afc`, `Rebobina.ipa` de 9.169.810 bytes e sha256 `3d11d6e861942998242743d50518a96628d4beb32dfc622204b885c2f7b4da83`, binário `Payload/Rebobina.app/Rebobina` de 24.882.120 bytes sha256 `42ab179bbb500dfdf577e7c857a8804023068cf0fd869fb229139b7651e55bb6`; mesmo tamanho de IPA e de binário do run #7, com sha diferente porque o binário carrega a data do build; passos "Trava dos tokens (sha256, regeneração e diff)" 1 s, "Compilar Kotlin (iOS arm64)" 12 s e "Xcode archive sem assinatura" 174 s, todos `success`, e "Prova extra do commonMain no alvo Android" com `success` |
+| 16 | O conferidor do canônico roda dentro de um cliente Kotlin sem rebobina-textos.json | `node design/tokens/conferir.mjs` dentro deste repositório imprime `aviso: sem rebobina-textos.json ao lado deste script; a conferencia de texto remoto fica de fora nesta rodada`, segue com `canonico: design\tokens\rebobina-tokens.json versao 1.0.7, sha256 93a648069591...` e lista `ok rebobina-ios main em dia`, `ok rebobina-android main em dia` e `ok rebobina-webos main em dia` com exit 0 depois do push; antes do push os três clientes apareciam como `ATRASADO`, com a versão antiga da cópia contra o canônico 1.0.7, e exit 1, que era o esperado |
 
 ## O que NÃO está provado
 
@@ -89,14 +91,15 @@ máquina.
 | 5 | 45101733957 | `83b9db0` | success | nenhum | 261 s (4m21s) | 43 min |
 | 6 | 45103365358 | `d3f6969` | success | nenhum | 227 s (3m47s) | 37 min |
 | 7 | 45107159058 | `61ddda1` | success | nenhum | 216 s (3m36s) | 36 min |
+| 8 | 45112444059 | `c6252aa` | success | nenhum | 241 s (4m01s) | 40 min |
 
-Total gasto até aqui: a soma real dos sete jobs é 1.544 s = **25 minutos e 44 segundos de
-runner macOS**, cobrados como **257 minutos** dos 2.000 do mês. Sobram 1.743 minutos
-cobrados, que dão 174 minutos de runner macOS, cerca de 49 builds de 3m30s.
+Total gasto até aqui: a soma real dos oito jobs é 1.785 s = **29 minutos e 45 segundos de
+runner macOS**, cobrados como **297,5 minutos** dos 2.000 do mês. Sobram 1.702,5 minutos
+cobrados, que dão 170,25 minutos de runner macOS, cerca de 48 builds de 3m30s.
 
 Cuidado com a leitura: os minutos da coluna acima são **minutos cobrados** (duração do job
-vezes 10, truncada para baixo em cada run, o que dá 254 no total) e não minutos de runner
-macOS. A soma dos resumos de run fica alguns minutos abaixo dos 257 cobrados de verdade,
+vezes 10, truncada para baixo em cada run, o que dá 294 no total) e não minutos de runner
+macOS. A soma dos resumos de run fica alguns minutos abaixo dos 297,5 cobrados de verdade,
 porque cada resumo trunca o próprio número. O eixo da conta está no `README.md`: 2.000
 dividido pelo fator 10 dá 200 minutos de runner macOS no mês.
 
@@ -157,9 +160,9 @@ plataforma instalada na imagem do runner (a `android-37` pura não está).
 ## Como reproduzir a conferência
 
 ```
-gh run view 45107159058 -R VRamses/rebobina-ios --json conclusion,jobs
-gh api repos/VRamses/rebobina-ios/actions/runs/45107159058/artifacts
-gh run download 45107159058 -R VRamses/rebobina-ios -n rebobina-ios-ipa-7
+gh run view 45112444059 -R VRamses/rebobina-ios --json conclusion,jobs
+gh api repos/VRamses/rebobina-ios/actions/runs/45112444059/artifacts
+gh run download 45112444059 -R VRamses/rebobina-ios -n rebobina-ios-ipa-8
 gh run view 45094376845 -R VRamses/rebobina-ios --json conclusion,jobs
 gh run download 45094376845 -R VRamses/rebobina-ios -n rebobina-ios-ipa-3
 gh release view v0.1.0 -R VRamses/rebobina-ios --json assets
@@ -170,5 +173,5 @@ E, na pasta do repositório, a trava dos tokens e a reprodução do gerado:
 ```
 node scripts/conferir-tokens.mjs
 ./gradlew :composeApp:conferirTokens
-node design/tokens/gerar-kotlin.mjs   # com o pacote padrão, tem de sair igual ao 0c8ee52
+node design/tokens/gerar-kotlin.mjs   # com o pacote padrão, tem de sair igual ao 8367859
 ```
