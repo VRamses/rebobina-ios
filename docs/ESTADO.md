@@ -27,8 +27,11 @@ O que fazer, em três linhas:
    aqui).
 
 Resumo: o build do IPA funciona no GitHub Actions e o IPA está publicado como release
-`v0.1.0`, com o arquivo renomeado para baixar e instalar. O que falta é abrir o app num
-iPhone de verdade, que não dá para testar desta máquina.
+`v0.1.0`, com o arquivo renomeado para baixar e instalar. Os tokens de desenho na versão 1.0.5
+já estão no repositório, com o JSON copiado byte a byte em `design/tokens` e o Kotlin gerado
+em `commonMain`, travados no build e no CI; quem ainda não os usa é a tela, que continua
+provisória. O que falta é abrir o app num iPhone de verdade, que não dá para testar desta
+máquina.
 
 ## O que está provado, com evidência
 
@@ -44,6 +47,9 @@ iPhone de verdade, que não dá para testar desta máquina.
 | 8 | O IPA tem download fácil, fora do Actions | release `v0.1.0` no commit `8e72fa0` (o mesmo do run #3), título "Rebobina iOS 0.1.0 (IPA sem assinatura)", asset `Rebobina-0.1.0-unsigned.ipa` com 7.571.684 bytes (7,22 MiB), sha256 `6fa5f17ff398e5575a735d8ba0270b3e59f7543cd6640fc9231077944ba42ee6`, estado `uploaded`, lido em `gh release view v0.1.0 --json assets` |
 | 9 | O asset publicado é exatamente o IPA do run #3 | baixei o artefato do run 45094376845, calculei o sha256 do `Rebobina.ipa` de dentro dele (6fa5f17f...) e publiquei esse arquivo sem recompilar e sem reempacotar |
 | 10 | O gatilho por tag também funciona | o push da tag `v0.1.0`, feito pela criação da release, disparou o run #4 (id 45095174609), que terminou `success` em 3m13s e publicou o artefato `rebobina-ios-ipa-4` |
+| 11 | Os tokens de desenho são cópia byte a byte da origem 1.0.5 | `design/tokens/rebobina-tokens.json` com 26.327 bytes e sha256 `a043d42591c4e91dc947054bbc43a1e5152c423423802f17d798710d0522e7b5`, igual ao primeiro campo do `rebobina-tokens.sha256` (86 bytes, sha256 `77da7c2d42079071a6ab51bca1071572737f5dd818bcdeb87e9e8ac8f8f4ff5f`), copiado do commit `0d9f035ddb7ae0beb71190e55398124ce72eb402` do `rebobina-servidor`; conferido com `git worktree add --detach 0d9f035` e `Get-FileHash` nos dois lados, e o `ORIGEM.json` registra repositório, branch, commit, caminho, sha256, versão 1.0.5 e data da cópia |
+| 12 | O Kotlin gerado é reprodutível e está travado | `node design/tokens/gerar-kotlin.mjs` com o pacote padrão do JSON reproduz byte a byte os arquivos de referência do commit `0c8ee52`: `ReboTokensGerado.kt` com 12.467 bytes e sha256 `3653fe16092d659a27db3b298a94505f299e7f93a47a88f2d4ca06f847afea13`, `ReboTextos.kt` com 1.976 bytes e sha256 `61c015da5aa858f2e4621b11fd7b2581d1a5cb620f4e4cd18de43b4ec9652bfe`; com `--pacote net.dynv6.rebobina.ui.tokens` saem 12.466 e 1.975 bytes, com só a linha do pacote diferente. `node scripts/conferir-tokens.mjs` sai 0 com `trava dos tokens: ok, versao 1.0.5`, um `object ReboTextosX` na linha 9 derruba `./gradlew :composeApp:conferirTokens` com mensagem explícita, e o passo equivalente no CI terminou `success` |
+| 13 | O IPA do run #6 leva o `commonMain` com os dois gerados | run #6 (id 45103365358), commit `d3f6969b3054afe8fd01d5d75eda54b078a32ebc`, `success` em 3m47s, artefato `rebobina-ios-ipa-6` com 9.121.985 bytes e digest `sha256:17438f73b36ddfdc2cc0c978ada7864cd67a1b34c51d07180295060d5a17ca8a`, `Rebobina.ipa` de 9.169.809 bytes e sha256 `ad163c1bb14492d98424df9c1577595c911468c6d75e8835d5ec1bf037df96d0`, binário `Payload/Rebobina.app/Rebobina` de 24.882.120 bytes, Mach-O 64 bits arm64; passos "Compilar Kotlin (iOS arm64)" 15 s e "Xcode archive sem assinatura" 154 s, ambos `success` |
 
 ## O que NÃO está provado
 
@@ -63,6 +69,10 @@ iPhone de verdade, que não dá para testar desta máquina.
   Android executada e não existe módulo de launcher Android nesta rodada.
 - **Tela de verdade.** A atual é provisória, marcada como placeholder em
   `composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/TemaPlaceholder.kt`.
+- **Tokens desenhando a tela.** Os 20 objetos de `ReboTokensGerado.kt` e os textos de
+  `ReboTextos.kt` compilam e entram no binário, mas `App.kt` e `TemaPlaceholder.kt` ainda não
+  os usam: a adoção visual é a rodada de UX. Nenhuma cor, tipo ou espaço novo foi conferido
+  desenhando, nem por captura de tela.
 - **Ícone do app.** Sem `Assets.xcassets` nesta rodada; o app usa o ícone padrão.
 - **Chamadas de rede.** Nenhuma requisição HTTP foi feita, porque ainda não há cliente HTTP
   no código. O ATS e a permissão de rede local estão no `Info.plist`, mas não exercitados.
@@ -75,14 +85,16 @@ iPhone de verdade, que não dá para testar desta máquina.
 | 2 | 45093782673 | `38dd978` | failure | Xcode archive sem assinatura | 201 s (3m21s) | 33 min |
 | 3 | 45094376845 | `8e72fa0` | success | nenhum | 208 s (3m28s) | 34 min |
 | 4 | 45095174609 | `8e72fa0` (tag `v0.1.0`) | success | nenhum | 193 s (3m13s) | 32 min |
+| 5 | 45101733957 | `83b9db0` | success | nenhum | 261 s (4m21s) | 43 min |
+| 6 | 45103365358 | `d3f6969` | success | nenhum | 227 s (3m47s) | 37 min |
 
-Total gasto até aqui: a soma real dos quatro jobs é 840 s = **14 minutos de runner macOS**,
-cobrados como **140 minutos** dos 2.000 do mês. Sobram 1.860 minutos cobrados, que dão 186
-minutos de runner macOS, cerca de 53 builds de 3m30s.
+Total gasto até aqui: a soma real dos seis jobs é 1.328 s = **22 minutos e 8 segundos de
+runner macOS**, cobrados como **221 minutos** dos 2.000 do mês. Sobram 1.779 minutos
+cobrados, que dão 177 minutos de runner macOS, cerca de 50 builds de 3m30s.
 
 Cuidado com a leitura: os minutos da coluna acima são **minutos cobrados** (duração do job
-vezes 10, truncada para baixo em cada run, o que dá 138 no total) e não minutos de runner
-macOS. A soma dos resumos de run fica alguns minutos abaixo dos 140 cobrados de verdade,
+vezes 10, truncada para baixo em cada run, o que dá 218 no total) e não minutos de runner
+macOS. A soma dos resumos de run fica alguns minutos abaixo dos 221 cobrados de verdade,
 porque cada resumo trunca o próprio número. O eixo da conta está no `README.md`: 2.000
 dividido pelo fator 10 dá 200 minutos de runner macOS no mês.
 
@@ -139,7 +151,18 @@ plataforma instalada na imagem do runner (a `android-37` pura não está).
 ## Como reproduzir a conferência
 
 ```
+gh run view 45103365358 -R VRamses/rebobina-ios --json conclusion,jobs
+gh api repos/VRamses/rebobina-ios/actions/runs/45103365358/artifacts
+gh run download 45103365358 -R VRamses/rebobina-ios -n rebobina-ios-ipa-6
 gh run view 45094376845 -R VRamses/rebobina-ios --json conclusion,jobs
 gh run download 45094376845 -R VRamses/rebobina-ios -n rebobina-ios-ipa-3
 gh release view v0.1.0 -R VRamses/rebobina-ios --json assets
+```
+
+E, na pasta do repositório, a trava dos tokens e a reprodução do gerado:
+
+```
+node scripts/conferir-tokens.mjs
+./gradlew :composeApp:conferirTokens
+node design/tokens/gerar-kotlin.mjs   # com o pacote padrão, tem de sair igual ao 0c8ee52
 ```

@@ -17,20 +17,23 @@ iOS, projeto Xcode, build no GitHub Actions e IPA para instalar. A tela do app a
 provisória, só para provar que o pipeline desenha na tela do iPhone. A interface de
 verdade entra na rodada de UX.
 
-Os tokens de desenho (cor, tipo, espaço, raio e movimento) já estão no repositório, copiados
-do `rebobina-servidor`, com o Kotlin deles gerado e travado no build e no CI. Quem ainda não
-usa os tokens é a tela: ela continua provisória até a rodada de UX.
+Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) já estão no
+repositório, copiados do `rebobina-servidor` na versão 1.0.5, com o Kotlin deles gerado e
+travado no build e no CI. Detalhe na seção [Os tokens de desenho](#os-tokens-de-desenho).
+Quem ainda não usa os tokens é a tela: ela continua provisória até a rodada de UX.
 
-O build do IPA já foi provado: o run #5 (id 45101733957) gerou o artefato
-`rebobina-ios-ipa-5` com `Rebobina.ipa` de 9.153.629 bytes (8,73 MiB), sha256
-`b064641ca675e053112d750c917b71aa85aec04b5f444c1e5a64c62b21961fb2`. O que ainda **não** foi
+O build do IPA já foi provado: o run #6 (id 45103365358) gerou o artefato
+`rebobina-ios-ipa-6` com `Rebobina.ipa` de 9.169.809 bytes (8,74 MiB), sha256
+`ad163c1bb14492d98424df9c1577595c911468c6d75e8835d5ec1bf037df96d0`. O que ainda **não** foi
 provado é abrir o app num iPhone, porque esta rodada não tem iPhone nem Mac para testar.
 Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
 
-O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 bytes no run #5. A
-hipótese mais provável é o `commonMain` agora referenciar `TextStyle`, `FontWeight`, `dp` e
-`sp`, o que puxa o stack de texto do Compose para dentro do link estático do framework. Não
-contei símbolo para provar isso; fica como medida, não como causa provada.
+O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 no run #5 e 9.121.985 no
+run #6. A explicação provável do salto do run #4 para o #5 é a entrada do
+`ReboTokensGerado.kt` no `commonMain`: ele referencia `TextStyle`, `FontWeight`, `dp` e `sp`,
+o que puxa o stack de texto do Compose para dentro do link estático do framework. O segundo
+salto, de uns 15 KB, acompanha o `ReboTextos.kt` e os objetos novos da 1.0.5. É medida e
+hipótese, não causa provada por contagem de símbolo.
 
 **Se o iPhone estiver em iOS anterior ao 26, o app provavelmente não abre.** O motivo, o
 diagnóstico e as duas saídas estão no começo do [docs/ESTADO.md](docs/ESTADO.md).
@@ -126,7 +129,7 @@ mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de 
 runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
 é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
-Conta feita, com os cinco builds que já rodaram:
+Conta feita, com os seis builds que já rodaram:
 
 ```
 orçamento: 2.000 minutos cobrados por mês
@@ -139,15 +142,16 @@ run 2 (falhou, 3m21s)  201 s
 run 3 (verde, 3m28s)   208 s
 run 4 (verde, 3m13s)   193 s
 run 5 (verde, 4m21s)   261 s
-soma:                  1.101 s = 18 minutos e 21 segundos de runner macOS
+run 6 (verde, 3m47s)   227 s
+soma:                  1.328 s = 22 minutos e 8 segundos de runner macOS
 
-cobrado até agora: 18,35 x 10 = 183,5 minutos dos 2.000
-sobrou: 2.000 - 183,5 = 1.816,5 minutos cobrados
-1.816,5 / 10 = 181,65 minutos de runner macOS disponíveis
-181,65 / 3,5 minutos por build = cerca de 51 builds de 3m30s neste mês
+cobrado até agora: 22,13 x 10 = 221,3 minutos dos 2.000
+sobrou: 2.000 - 221,3 = 1.778,7 minutos cobrados
+1.778,7 / 10 = 177,87 minutos de runner macOS disponíveis
+177,87 / 3,5 minutos por build = cerca de 50 builds de 3m30s neste mês
 ```
 
-Ou seja: **sobram cerca de 181 minutos de runner macOS**, que dão cerca de 51 builds de 3m30s.
+Ou seja: **sobram cerca de 177 minutos de runner macOS**, que dão cerca de 50 builds de 3m30s.
 A conta acima trunca a duração de cada job ao minuto, então o número é o piso do gasto: o
 GitHub arredonda cada job para cima ao faturar, e o total real pode ficar alguns minutos
 acima. Não reconferi essa regra na documentação do GitHub nesta rodada.
@@ -173,17 +177,75 @@ composeApp/                               módulo Kotlin Multiplatform
     App.kt                                tela provisória
     config/RebobinaConfig.kt              único lugar com o endereço do servidor
     ui/TemaPlaceholder.kt                 cores provisórias, marcadas como provisórias
+    ui/tokens/ReboTokensGerado.kt         tokens de desenho, gerado (não editar à mão)
+    ui/tokens/ReboTextos.kt               textos de estado e selo, gerado (não editar à mão)
   src/iosMain/kotlin/net/dynv6/rebobina/
     MainViewController.kt                 ponte Kotlin para o Swift
     Plataforma.ios.kt
+design/tokens/                            cópia da fonte da verdade do desenho
+  rebobina-tokens.json                    o JSON, byte a byte do rebobina-servidor
+  rebobina-tokens.sha256                  sha256 do JSON, a trava da cópia
+  ORIGEM.json                             de onde veio: commit, versão e sha256
+  gerar.mjs                               gerador das folhas CSS de referência
+  gerar-kotlin.mjs                        gerador do Kotlin de commonMain
+  conferir.mjs                            confere pela API do GitHub se a cópia está em dia
 iosApp/                                   projeto Xcode
   iosApp.xcodeproj                        projeto, sem dependência de CocoaPods
   iosApp/Info.plist                       permissão de HTTP local e nome Rebobina
   iosApp/iOSApp.swift, ContentView.swift  casca SwiftUI em volta do Compose
 scripts/build-kotlin-framework.sh         compila o framework Kotlin chamado pelo Xcode
+scripts/conferir-tokens.mjs               sha256 e regeração, rodado no Gradle e no CI
 .github/workflows/ios.yml                 build do IPA no GitHub Actions
 docs/ESTADO.md                            o que está provado e o que não está
 ```
+
+## Os tokens de desenho
+
+Cor, tipo, espaço, raio, movimento e os textos de estado vêm de um JSON só, o
+`design/tokens/rebobina-tokens.json` do repositório `rebobina-servidor`. Este repositório tem
+uma cópia byte a byte em `design/tokens/`, versão **1.0.5**, 26.327 bytes, sha256
+`a043d42591c4e91dc947054bbc43a1e5152c423423802f17d798710d0522e7b5`, copiada do commit
+`0d9f035ddb7ae0beb71190e55398124ce72eb402`.
+
+O Kotlin que o app usa é gerado, nunca escrito à mão, e são dois arquivos:
+
+- `ReboTokensGerado.kt`, 12.466 bytes, 20 objetos com prefixo `Rebo`: `ReboColor`,
+  `ReboColorClaro`, `ReboType`, `ReboTypeCelular`, `ReboPeso`, `ReboTypePiso`,
+  `ReboTypePisos`, `ReboTypeNumeros`, `ReboSpace`, `ReboSpaceUso`, `ReboRadius`, `ReboMotion`,
+  `ReboMotionReducao`, `ReboSelo`, `ReboIconeTamanho`, `ReboTraco`, `ReboEstadoApos`,
+  `ReboEstadoCarregando`, `ReboSize` e `ReboGrade`;
+- `ReboTextos.kt`, 1.975 bytes, os 5 estados (`carregando`, `semRede`, `erro`, `vazio`,
+  `semPasse`) e 3 selos em texto, do mesmo JSON.
+
+Comando que gera os dois, e é o mesmo que o CI roda:
+
+```
+node design/tokens/gerar-kotlin.mjs \
+  --pacote net.dynv6.rebobina.ui.tokens \
+  --saida composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTokensGerado.kt \
+  --saida-textos composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTextos.kt
+```
+
+A trava roda em dois lugares com a mesma implementação, `scripts/conferir-tokens.mjs`:
+
+```
+node scripts/conferir-tokens.mjs      # local
+./gradlew :composeApp:conferirTokens  # roda antes de todo compileKotlin e de check
+```
+
+Ela confere três coisas: o sha256 do JSON contra `rebobina-tokens.sha256`; que o
+`ORIGEM.json` conta a mesma história do JSON (versão e sha256); e que os dois `.kt`
+commitados são exatamente o que o gerador produz agora, comparados byte a byte. No GitHub
+Actions um passo faz a mesma conferência, regera os dois arquivos no lugar e exige
+`git diff --exit-code`, antes do Xcode, que é a parte cara da execução.
+
+Para atualizar um valor de desenho: mudar o JSON na origem, subir a versão lá, copiar JSON,
+sha256 e `gerar-kotlin.mjs` para cá, atualizar o `ORIGEM.json`, regerar os dois `.kt` e
+commitar tudo junto. Valor novo não entra por edição no Kotlin gerado nem no JSON daqui: o
+gerador recusa quando a versão do `ORIGEM.json` não casa com a do JSON.
+
+A tela ainda não consome esses objetos: `App.kt` e `ui/TemaPlaceholder.kt` continuam
+provisórios, e a adoção visual entra na rodada de UX.
 
 ## Trocar o endereço do servidor
 
