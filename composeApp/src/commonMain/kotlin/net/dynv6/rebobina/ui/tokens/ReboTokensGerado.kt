@@ -7,8 +7,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // GERADO A PARTIR DE design/tokens/rebobina-tokens.json. NAO EDITAR A MAO.
-// fonte: rebobina-tokens 1.0.7, 2026-11-23, Yara Baptista.
-// sha256 do JSON: 93a64806959169c3673570058cfeac2b54cef205a64da88d4f48e78a1aabc048
+// fonte: rebobina-tokens 1.0.8, 2026-11-23, Yara Baptista.
+// sha256 do JSON: c39b8fe77bfe82fa57c0a1c5044dc1a16636177e9ed239f34a4641f57077ca98
 // canonico: rebobina-servidor main design/tokens/rebobina-tokens.json.
 // familia: system-ui, Roboto, -apple-system, Segoe UI, sans-serif.
 // Sem fonte propria no repositorio (tipo.familia.propria = false): em Compose a pilha do
@@ -460,9 +460,15 @@ object ReboGrade {
     object Celular {
         val ColunasVertical = 3
         val ColunasHorizontal = 4
+        val LarguraCartao = 140
+        val ColunasCanalVertical = 2
+        val ColunasCanalHorizontal = 4
     }
     object Ios {
         val ColunasVertical = 3
         val ColunasHorizontal = 4
+        val LarguraCartao = 140
+        val ColunasCanalVertical = 2
+        val ColunasCanalHorizontal = 4
     }
 }

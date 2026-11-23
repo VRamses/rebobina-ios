@@ -18,7 +18,7 @@ provisória, só para provar que o pipeline desenha na tela do iPhone. A interfa
 verdade entra na rodada de UX.
 
 Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) já estão no
-repositório, copiados do `rebobina-servidor` na versão 1.0.7, com o Kotlin deles gerado e
+repositório, copiados do `rebobina-servidor` na versão 1.0.8, com o Kotlin deles gerado e
 travado no build e no CI. Detalhe na seção [Os tokens de desenho](#os-tokens-de-desenho).
 Quem ainda não usa os tokens é a tela: ela continua provisória até a rodada de UX.
 
@@ -216,18 +216,18 @@ docs/ESTADO.md                            o que está provado e o que não está
 
 Cor, tipo, espaço, raio, movimento e os textos de estado vêm de um JSON só, o
 `design/tokens/rebobina-tokens.json` do repositório `rebobina-servidor`. Este repositório tem
-uma cópia byte a byte em `design/tokens/`, versão **1.0.7**, 30.297 bytes, sha256
-`93a64806959169c3673570058cfeac2b54cef205a64da88d4f48e78a1aabc048`, copiada do commit
-`836785906686a558aa7c5ac4a77f2dcd0e0f6974`. A 1.0.7 não mexeu em valor de desenho: corrigiu a
-convenção do espaço no Kotlin, que dizia `ReboSpace.x<n>` quando o gerador sempre emitiu
-`ReboSpace.N<indice>` de `N0` a `N9`, e fez o `conferir.mjs` rodar dentro de um cliente que só
-recebe Kotlin, sem o `rebobina-textos.json`. Por isso os dois `.kt` mudaram só na linha de
-cabeçalho que cita a versão e o sha256 do JSON, e o tamanho dos dois e os 20 objetos continuam
-os mesmos.
+uma cópia byte a byte em `design/tokens/`, versão **1.0.8**, 31.413 bytes, sha256
+`c39b8fe77bfe82fa57c0a1c5044dc1a16636177e9ed239f34a4641f57077ca98`, copiada do commit
+`0e06bcea3354b010996545b9016979d012bef3f6`. A 1.0.8 só acrescentou a grade do celular:
+`LarguraCartao = 140`, `ColunasCanalVertical = 2` e `ColunasCanalHorizontal = 4` em
+`ReboGrade.Ios` e no espelho `ReboGrade.Celular`, sem mexer em valor existente. Antes dela, a
+1.0.7 tinha corrigido a convenção do espaço no Kotlin, que dizia `ReboSpace.x<n>` quando o
+gerador sempre emitiu `ReboSpace.N<indice>` de `N0` a `N9`, e fez o `conferir.mjs` rodar dentro
+de um cliente que só recebe Kotlin, sem o `rebobina-textos.json`.
 
 O Kotlin que o app usa é gerado, nunca escrito à mão, e são dois arquivos:
 
-- `ReboTokensGerado.kt`, 12.466 bytes, 20 objetos com prefixo `Rebo`: `ReboColor`,
+- `ReboTokensGerado.kt`, 12.682 bytes, 20 objetos com prefixo `Rebo`: `ReboColor`,
   `ReboColorClaro`, `ReboType`, `ReboTypeCelular`, `ReboPeso`, `ReboTypePiso`,
   `ReboTypePisos`, `ReboTypeNumeros`, `ReboSpace`, `ReboSpaceUso`, `ReboRadius`, `ReboMotion`,
   `ReboMotionReducao`, `ReboSelo`, `ReboIconeTamanho`, `ReboTraco`, `ReboEstadoApos`,
@@ -243,6 +243,10 @@ node design/tokens/gerar-kotlin.mjs \
   --saida composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTokensGerado.kt \
   --saida-textos composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTextos.kt
 ```
+
+Com a linha do pacote normalizada, os dois saem idênticos aos arquivos de referência do
+canônico, que têm 12.683 e 1.976 bytes porque o pacote de lá é `rebobina.android.ui.base.rebo`,
+um caractere mais longo que `net.dynv6.rebobina.ui.tokens`.
 
 A trava roda em dois lugares com a mesma implementação, `scripts/conferir-tokens.mjs`:
 
