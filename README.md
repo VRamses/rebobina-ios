@@ -12,15 +12,19 @@ Compose Multiplatform e projeto Xcode. O IPA sai sem assinatura do GitHub Action
 
 ## Estado atual (leia antes de baixar)
 
-Esta rodada entrega o encanamento: projeto Kotlin Multiplatform que compila, framework
-iOS, projeto Xcode, build no GitHub Actions e IPA para instalar. A tela do app ainda é
-provisória, só para provar que o pipeline desenha na tela do iPhone. A interface de
-verdade entra na rodada de UX.
+A rodada de 23/11/2026 saiu do placeholder: o app agora tem as cinco telas do Android
+(Início, Ficha, Canais, Downloads e Busca) mais Ajustes, desenhadas só com os tokens
+gerados, navegáveis pela barra inferior, com as duas faixas de layout do Android (celular
+quando `largura < 600 dp` ou `altura < 480 dp`) e dados reais do Jellyfin por um cliente
+Ktor mínimo. O player fica para a próxima rodada, e os botões de assistir e de baixar
+declaram isso em vez de fingir reprodução. `ui/TemaPlaceholder.kt` foi apagado.
 
-Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) já estão no
-repositório, copiados do `rebobina-servidor` na versão 1.0.8, com o Kotlin deles gerado e
-travado no build e no CI. Detalhe na seção [Os tokens de desenho](#os-tokens-de-desenho).
-Quem ainda não usa os tokens é a tela: ela continua provisória até a rodada de UX.
+Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) continuam
+copiados do `rebobina-servidor` na versão 1.0.8, com o Kotlin deles gerado e travado no
+build e no CI. A camada que liga tela e token mora em `ui/base/`, e uma trava local
+(`scripts/conferir-desenho.mjs`) reprova cor ou tamanho escrito à mão em tela. Detalhe nas
+seções [Os tokens de desenho](#os-tokens-de-desenho) e
+[As cinco telas e a camada de desenho](#as-cinco-telas-e-a-camada-de-desenho).
 
 O build do IPA já foi provado: o run #9 (id 45166068336) gerou o artefato
 `rebobina-ios-ipa-9` com `Rebobina.ipa` de 9.170.102 bytes (8,75 MiB), sha256
@@ -28,6 +32,13 @@ O build do IPA já foi provado: o run #9 (id 45166068336) gerou o artefato
 dentro dele diz `MinimumOSVersion 17.0`. O que ainda **não** foi provado é abrir o app num
 iPhone, porque esta rodada não tem iPhone nem Mac para testar.
 Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
+
+O IPA desta rodada é o do run #10, disparado depois do commit que trouxe as cinco telas, e é
+o primeiro com as telas e com o cliente Jellyfin dentro do binário. Os números dele
+(tamanho, sha256, duração do job e minutos cobrados) ficam no item 19 da tabela
+[docs/ESTADO.md](docs/ESTADO.md), porque só existem depois do build. Até o build passar, o
+que está provado das telas é a trava local, não a compilação: esta máquina não tem JDK nem
+Gradle.
 
 O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 no run #5 e 9.121.985 no
 run #6. A explicação provável do salto do run #4 para o #5 é a entrada do
@@ -187,14 +198,39 @@ rebobina.version                          versão do app (uma fonte só)
 composeApp/                               módulo Kotlin Multiplatform
   build.gradle.kts                        alvos iosArm64, iosSimulatorArm64 e Android
   src/commonMain/kotlin/net/dynv6/rebobina/
-    App.kt                                tela provisória
+    App.kt                                navegação: barra inferior, ficha e Ajustes
     config/RebobinaConfig.kt              único lugar com o endereço do servidor
-    ui/TemaPlaceholder.kt                 cores provisórias, marcadas como provisórias
+    dados/Acervo.kt                       leitura do Jellyfin traduzida para a tela
+    dados/AcervoModelos.kt                modelos que as telas desenham
+    dados/JellyfinApi.kt                  cliente Ktor, um endpoint por função
+    dados/JellyfinDtos.kt                 DTOs em PascalCase, como o servidor responde
+    dados/Imagens.kt                      cache de capa em memória (80 imagens)
+    dados/AjustesDoAcervo.kt              endereço e chave em memória, com salvar
+    dados/Persistencia.kt                 expect/actual dos ajustes salvos
+    Plataforma.kt                         expect do nome da plataforma
+    ui/base/ReboTokens.kt                 apelidos dos tokens e tradução de cor por nome
+    ui/base/ReboAdaptativo.kt             faixa celular/tablet e colunas da grade
+    ui/base/ReboComponentes.kt            botão, campo, cartão, grade, abas, imagem
+    ui/base/ReboEstado.kt                 carregando, falha e vazio com ReboTextos
+    ui/base/ReboTema.kt                   MaterialTheme escuro mapeado nos tokens
+    ui/base/ReboRotulos.kt                rótulos que o JSON canônico não publica
+    ui/telas/TelaInicio.kt                trilho e grade do acervo
+    ui/telas/TelaFicha.kt                 ficha com abas de episódios, elenco e similares
+    ui/telas/TelaCanais.kt                grade de canais ao vivo
+    ui/telas/TelaBusca.kt                 busca com atraso de 350 ms e 2 caracteres
+    ui/telas/TelaDownloads.kt             fila vazia declarada, sem baixar de verdade
+    ui/telas/TelaAjustes.kt               endereço, chave e teste de conexão
     ui/tokens/ReboTokensGerado.kt         tokens de desenho, gerado (não editar à mão)
     ui/tokens/ReboTextos.kt               textos de estado e selo, gerado (não editar à mão)
+  src/commonTest/kotlin/net/dynv6/rebobina/ui/base/
+    ReboAdaptativoTest.kt                 7 testes da faixa e das colunas
+  src/androidMain/kotlin/net/dynv6/rebobina/
+    Plataforma.android.kt                 nome da plataforma
+    dados/Plataforma.android.kt           cliente sem motor e ajustes em memória
   src/iosMain/kotlin/net/dynv6/rebobina/
     MainViewController.kt                 ponte Kotlin para o Swift
-    Plataforma.ios.kt
+    Plataforma.ios.kt                     nome da plataforma
+    dados/Plataforma.ios.kt               cliente Darwin e ajustes no NSUserDefaults
 design/tokens/                            cópia da fonte da verdade do desenho
   rebobina-tokens.json                    o JSON, byte a byte do rebobina-servidor
   rebobina-tokens.sha256                  sha256 do JSON, a trava da cópia
@@ -208,6 +244,7 @@ iosApp/                                   projeto Xcode
   iosApp/iOSApp.swift, ContentView.swift  casca SwiftUI em volta do Compose
 scripts/build-kotlin-framework.sh         compila o framework Kotlin chamado pelo Xcode
 scripts/conferir-tokens.mjs               sha256 e regeração, rodado no Gradle e no CI
+scripts/conferir-desenho.mjs              trava do desenho: nada de cor/dp literal em tela
 .github/workflows/ios.yml                 build do IPA no GitHub Actions
 docs/ESTADO.md                            o que está provado e o que não está
 ```
@@ -271,8 +308,66 @@ sha256 e `gerar-kotlin.mjs` para cá, atualizar o `ORIGEM.json`, regerar os dois
 commitar tudo junto. Valor novo não entra por edição no Kotlin gerado nem no JSON daqui: o
 gerador recusa quando a versão do `ORIGEM.json` não casa com a do JSON.
 
-A tela ainda não consome esses objetos: `App.kt` e `ui/TemaPlaceholder.kt` continuam
-provisórios, e a adoção visual entra na rodada de UX.
+A tela agora consome esses objetos: nenhuma tela de `ui/telas` escreve cor, tamanho de fonte
+ou `.dp`, e o que o JSON não publica (proporção de capa, alfa de véu, espessura de anel,
+texto de rótulo) está declarado em um lugar só, `ui/base/ReboTokens.kt` e
+`ui/base/ReboRotulos.kt`, com o motivo escrito. Detalhe na seção
+[As cinco telas e a camada de desenho](#as-cinco-telas-e-a-camada-de-desenho).
+
+## As cinco telas e a camada de desenho
+
+A estrutura é a mesma do Android (commit `9ca65241a`), para as duas telas olharem o mesmo
+desenho:
+
+| tela | arquivo | o que desenha | dado |
+|---|---|---|---|
+| Início | `ui/telas/TelaInicio.kt` | palavra do app, usuário logado, trilho de continuar assistindo, grade de adicionados recentemente | `/Users/{id}/Items` com `Filters=IsResumable` e a mesma rota com `SortBy=DateCreated` |
+| Ficha | `ui/telas/TelaFicha.kt` | fundo, capa, título, meta, sinopse, abas Episódios / Elenco / Similares | `/Users/{id}/Items/{itemId}`, `/Episodes` e `/Similar` |
+| Canais | `ui/telas/TelaCanais.kt` | grade de canais ao vivo com selo e programa atual | `/LiveTv/Channels` |
+| Busca | `ui/telas/TelaBusca.kt` | campo, sugestões e resultados em linha | `/Users/{id}/Items` com `SearchTerm`, depois de 350 ms e 2 caracteres |
+| Ajustes | `ui/telas/TelaAjustes.kt` | endereço e chave do servidor, salvar e testar conexão | `/Users`, só no botão de testar |
+| Downloads | `ui/telas/TelaDownloads.kt` | fila vazia declarada, sem inventar download | nenhum: o app não baixa nesta rodada |
+
+A camada de desenho, toda em `commonMain/ui/base/`:
+
+- `ReboTokens.kt`: apelidos dos tokens gerados (`ReboDimensao`, `ReboShape`, `ReboEstilo`,
+  `ReboProporcao`, `ReboAlfa`) e `reboCorDoNome`, que traduz o nome de cor que o JSON guarda
+  em texto para `ReboColor`;
+- `ReboAdaptativo.kt`: a faixa de layout, `largura < 600 dp` ou `altura < 480 dp` vira
+  celular, mais as colunas de catálogo e de canal lidas de `ReboGrade.Ios`;
+- `ReboComponentes.kt`: botão, campo, selo, fio, imagem remota, barra de progresso, avatar,
+  chip, cabeçalho, grade, fileira, cartão, linha, abas e item de aba;
+- `ReboEstado.kt`: carregando, falha e vazio, com o texto de `ReboTextos.kt` gerado;
+- `ReboTema.kt`: `MaterialTheme` escuro mapeado nos tokens, só como casca: as telas leem
+  `ReboColor`, não `MaterialTheme`;
+- `ReboRotulos.kt`: os rótulos de navegação, campo e seção que o JSON canônico não publica.
+
+Limites declarados desta rodada, sem invenção de dado:
+
+- o player e o download não existem: os botões mostram `ReboRotulos.PENDENTE_REPRODUTOR`;
+- `ReboRotulos` e `FormatoDeTexto` (duração, temporada, episódio, tipo de mídia e separador)
+  são texto escrito à mão porque o JSON 1.0.8 tem 488 folhas e nenhuma delas é rótulo de
+  navegação, de campo ou de seção: só `estado.*` e `selo.variantes.*` são texto de tela;
+- o tema claro (`ReboColorClaro`) existe no gerado e não é usado: esta rodada é escura só;
+- as imagens de capa são buscadas em 300 px e as de fundo em 1200 px, valores escolhidos
+  aqui e não vindos do JSON: o token de tamanho de arte não existe;
+- o ATS do `Info.plist` libera `NSAllowsArbitraryLoads` para o Jellyfin em HTTP na rede
+  local. É risco aceito de sideload, não recomendação: o IPA é sem assinatura e a chave do
+  servidor fica no `NSUserDefaults` do aparelho, nunca no repositório.
+
+A trava do desenho roda local e no CI, antes do build:
+
+```
+node scripts/conferir-desenho.mjs
+```
+
+Ela reprova `Color(0x...)`, `Color.<nome>`, hexadecimal e `.dp`/`.sp` literal em
+`ui/telas`, exige `ReboRotulos` e um componente de estado em cada tela (Ajustes de fora,
+porque o estado dela é o resultado de "Testar conexão") e, no fim, chama a trava dos tokens.
+Saída desta rodada: `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` e
+`trava dos tokens: ok, versao 1.0.8`. A trava é textual: ela não prova pixel nem beleza, e
+a comparação com o Android só valeria com captura de tela dos dois lados, que esta rodada
+não tem.
 
 ## Trocar o endereço do servidor
 

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -32,6 +33,20 @@ kotlin {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+        }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+
+        // O motor HTTP do iOS e o NSURLSession, que ja respeita o ATS do Info.plist.
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }
@@ -48,11 +63,15 @@ kotlin {
 // Kotlin para comparar byte a byte com o arquivo commitado. Esta tarefa roda antes de
 // qualquer compileKotlin e antes de check, entao o framework iOS nao sai com token fora
 // de sincronia.
+//
+// A segunda trava, scripts/conferir-desenho.mjs, e a do desenho desta rodada: as telas
+// nao podem escrever cor, tamanho ou tipo por conta propria, e o texto de estado tem de
+// sair do ReboTextos.kt gerado.
 // ---------------------------------------------------------------------------
 
 val raizDoRepositorio = rootProject.projectDir
 
-// No Windows o node do PATH e um .cmd, que o ProcessBuilder nao executa direto; o
+// No Windows o node do PATH e um .cmd, que o ProcessBuilder nao executa direito; o
 // cmd.exe /c resolve. No macOS e no Linux o node roda como esta no PATH.
 val comandoNode: List<String> =
     if (System.getProperty("os.name").lowercase().contains("windows")) {
@@ -68,5 +87,12 @@ val conferirTokens = tasks.register<Exec>("conferirTokens") {
     setCommandLine(comandoNode + listOf("scripts/conferir-tokens.mjs"))
 }
 
+val conferirDesenho = tasks.register<Exec>("conferirDesenho") {
+    group = "verification"
+    description = "Confere o desenho das telas contra os tokens (scripts/conferir-desenho.mjs)."
+    workingDir = raizDoRepositorio
+    setCommandLine(comandoNode + listOf("scripts/conferir-desenho.mjs"))
+}
+
 tasks.matching { it.name.startsWith("compileKotlin") || it.name == "check" }
-    .configureEach { dependsOn(conferirTokens) }
+    .configureEach { dependsOn(conferirTokens, conferirDesenho) }

@@ -32,10 +32,12 @@ O que fazer, em três linhas:
 
 Resumo: o build do IPA funciona no GitHub Actions e o IPA está publicado como release
 `v0.1.0`, com o arquivo renomeado para baixar e instalar. Os tokens de desenho na versão 1.0.8
-já estão no repositório, com o JSON copiado byte a byte em `design/tokens` e o Kotlin gerado
-em `commonMain`, travados no build e no CI; quem ainda não os usa é a tela, que continua
-provisória. O que falta é abrir o app num iPhone de verdade, que não dá para testar desta
-máquina.
+estão no repositório, com o JSON copiado byte a byte em `design/tokens` e o Kotlin gerado em
+`commonMain`, travados no build e no CI. A rodada de 23/11/2026 apagou o `TemaPlaceholder.kt`:
+as cinco telas do Android mais Ajustes estão escritas só com os tokens, com as duas faixas de
+layout e um cliente Ktor que lê o Jellyfin de verdade, e a trava local do desenho passa. O que
+falta é o build desta rodada (run #10) compilar, e depois abrir o app num iPhone de verdade,
+que não dá para testar desta máquina.
 
 ## O que está provado, com evidência
 
@@ -62,6 +64,22 @@ máquina.
 
 ## O que NÃO está provado
 
+- **Compilar esta rodada no CI.** No momento em que este documento foi escrito, as cinco
+  telas, a camada de desenho e o cliente Ktor ainda não tinham passado por compilação: esta
+  máquina não tem JDK nem Gradle, então o `compileKotlinIosArm64` do run #10 é a primeira
+  prova. Se ele falhar, o que cai é hipótese de API, não o desenho provado pela trava.
+- **Desenhar de verdade na tela.** A trava `scripts/conferir-desenho.mjs` é textual: ela
+  reprova `Color(0x...)`, `Color.<nome>`, hexadecimal e `.dp`/`.sp` literal em `ui/telas`,
+  exige `ReboRotulos` e componente de estado, e passa nas seis telas. Ela não prova que o
+  desenho ficou bonito, nem que o pixel bate com o Android: isso só uma captura de tela prova,
+  e não há Mac nem iPhone aqui.
+- **Chamadas de rede reais.** O cliente Ktor foi escrito e nunca executado: nenhuma
+  requisição ao `http://192.168.18.9:8096` saiu desta máquina, nem `/Users`, nem `/Items`,
+  nem `/LiveTv/Channels`. O ATS do `Info.plist` libera HTTP local e não foi exercitado.
+- **Decodificar imagem remota.** `Imagens.obter` usa `decodeToImageBitmap` de
+  `ui-graphics`; a existência da função no klib do Compose 1.11.1 foi conferida, mas nenhum
+  byte de JPEG foi decodificado nesta rodada. Se falhar em execução, o cartão fica com o
+  retângulo de `cor.slot`, que é o caminho previsto.
 - **Abrir o app num iPhone.** Não existe iPhone nem Mac nesta máquina. O IPA sai sem
   assinatura; quem assina com Apple ID gratuito é o Sideloadly ou o AltStore, no PC do
   Ramses. Se o aparelho estiver em iOS anterior ao 17, o Sideloadly não instala; veja a
@@ -74,21 +92,19 @@ máquina.
   verdade não foi executada, por falta de aparelho aqui. O comportamento em iOS 17 a 25
   continua não medido.
 - **Alvo Android do módulo.** `compileSdk` 36 e `minSdk` 24 configurados, nenhuma tarefa
-  Android executada e não existe módulo de launcher Android nesta rodada.
-- **Tela de verdade.** A atual é provisória, marcada como placeholder em
-  `composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/TemaPlaceholder.kt`.
-- **Tokens desenhando a tela.** Os 20 objetos de `ReboTokensGerado.kt` e os textos de
-  `ReboTextos.kt` compilam e entram no binário do run #9, que levava a 1.0.7; a 1.0.8 foi
-  reimportada depois desse build e ainda não passou por compilação (item 18 da tabela).
-  `App.kt` e `TemaPlaceholder.kt` ainda não os usam: a adoção visual é a rodada de UX. Nenhuma
-  cor, tipo ou espaço novo foi conferido desenhando, nem por captura de tela.
-- **O IPA com os tokens 1.0.8.** Nesta rodada não disparei run de macOS, por decisão de cota:
-  o iOS não tem consumidor de token e a mudança é dado vendorizado. O que está provado é a
-  trava local e o conferidor cross-repo; o primeiro build que compilar a 1.0.8 será o da
-  rodada das telas, e até lá não existe binário com essa versão.
+  Android executada e não existe módulo de launcher Android nesta rodada. O actual Android de
+  `criarClienteHttp` usa `HttpClient { }` sem motor declarado e os ajustes ficam em memória:
+  não é executável, existe para o módulo compilar.
+- **Player e download.** `TelaFicha` mostra `ReboRotulos.PENDENTE_REPRODUTOR` no lugar de
+  reproduzir, e `TelaDownloads` é uma fila vazia declarada. Nenhum arquivo é baixado, nem
+  tocado.
+- **Rótulos e formato fora do token.** `ui/base/ReboRotulos.kt` e o `FormatoDeTexto` de
+  `dados/Acervo.kt` são texto escrito à mão. O JSON 1.0.8 tem 488 folhas e só publica texto de
+  `estado.*` e `selo.variantes.*`; rótulo de aba, campo, seção, unidade de duração, temporada,
+  episódio e tipo de mídia não existem lá. Isso é lacuna declarada do token, não escolha de
+  desenho.
+- **Tema claro.** `ReboColorClaro` está no gerado e não é usado: esta rodada é escura só.
 - **Ícone do app.** Sem `Assets.xcassets` nesta rodada; o app usa o ícone padrão.
-- **Chamadas de rede.** Nenhuma requisição HTTP foi feita, porque ainda não há cliente HTTP
-  no código. O ATS e a permissão de rede local estão no `Info.plist`, mas não exercitados.
 
 ## Histórico das execuções
 
@@ -183,6 +199,27 @@ iOS 17 falhar citando a classe.
 8. Assumi que `[skip ci]` no assunto não muda nada aqui: o workflow deste repositório só tem
    `workflow_dispatch` e tag, então o push não dispararia build de qualquer forma. O prefixo
    fica como pedido do Lead e como garantia extra de que nenhum run foi gasto.
+9. Assumi as versões de dependência sem compilar: Ktor 3.3.3, coroutines 1.10.2,
+   serialization 1.9.0, dentro do Kotlin 2.4.10. O cache Gradle desta máquina não tem Ktor, e
+   o primeiro download é no runner do run #10.
+10. Assumi que `decodeToImageBitmap` de `androidx.compose.ui.graphics` existe no commonMain do
+    Compose 1.11.1: conferi a função no klib de `ui-graphics-iosarm64`, não a chamei.
+11. Assumi que `safeDrawingPadding()` resolve a área segura no iOS pelo próprio Compose, sem
+    `WindowInsets` nativo. Se o build reclamar, o plano é tirar o modificador da raiz e
+    declarar a área segura como pendente, não escrever inset à mão.
+12. Assumi `PasswordVisualTransformation`, `HttpClientConfig<*>.configurarRebobina()` como
+    extensão, `resposta.body<ByteArray>()` e `Aba.entries` sem compilar nenhum deles: são as
+    quatro apostas de API que o run #10 testa de uma vez.
+13. Assumi que o primeiro usuário de `/Users` é o que o app usa, sem tela de escolha de
+    perfil. O Android desta rodada faz o mesmo.
+14. Assumi o ATS com `NSAllowsArbitraryLoads` como risco aceito de sideload, porque o
+    Jellyfin da casa é HTTP em `192.168.18.9:8096` e não há certificado. Não é recomendação
+    para App Store: o IPA é sem assinatura e a chave fica no `NSUserDefaults` do aparelho.
+15. Assumi 300 px para capa e 1200 px para fundo porque o JSON não publica tamanho de arte; o
+    número está em `dados/Acervo.kt`, num lugar só.
+16. Assumi que a igualdade com o Android é de estrutura, não de pixel: os dois lados têm a
+    mesma faixa (600/480), as mesmas colunas e os mesmos tokens, mas nenhum dos dois foi
+    capturado em tela nesta rodada.
 
 ## Como reproduzir a conferência
 
