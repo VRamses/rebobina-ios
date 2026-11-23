@@ -71,15 +71,20 @@ iPhone de verdade, que não dá para testar desta máquina.
 
 | # | id | commit | resultado | passo que falhou | duração do job | minutos cobrados (fator 10) |
 |---|---|---|---|---|---|---|
-| 1 | 45092332982 | `0d828ec` | failure | Xcode archive sem assinatura | 4m58s | 40 min |
-| 2 | 45093782673 | `38dd978` | failure | Xcode archive sem assinatura | 3m21s | 34 min |
-| 3 | 45094376845 | `8e72fa0` | success | nenhum | 3m28s | 35 min |
-| 4 | 45095174609 | `8e72fa0` (tag `v0.1.0`) | success | nenhum | 3m13s | 32 min |
+| 1 | 45092332982 | `0d828ec` | failure | Xcode archive sem assinatura | 238 s (4m58s) | 39 min |
+| 2 | 45093782673 | `38dd978` | failure | Xcode archive sem assinatura | 201 s (3m21s) | 33 min |
+| 3 | 45094376845 | `8e72fa0` | success | nenhum | 208 s (3m28s) | 34 min |
+| 4 | 45095174609 | `8e72fa0` (tag `v0.1.0`) | success | nenhum | 193 s (3m13s) | 32 min |
 
-Total gasto até aqui: 141 minutos de runner macOS = **1.410 minutos cobrados** dos 2.000 do
-mês. Sobram 590 minutos cobrados, ou seja, 59 minutos de runner macOS, cerca de 16 builds de
-3m30s. O eixo da conta está no `README.md`: 2.000 dividido pelo fator 10 dá 200 minutos de
-runner macOS no mês, e cada minuto de job consome 10 minutos do orçamento.
+Total gasto até aqui: a soma real dos quatro jobs é 840 s = **14 minutos de runner macOS**,
+cobrados como **140 minutos** dos 2.000 do mês. Sobram 1.860 minutos cobrados, que dão 186
+minutos de runner macOS, cerca de 53 builds de 3m30s.
+
+Cuidado com a leitura: os minutos da coluna acima são **minutos cobrados** (duração do job
+vezes 10, truncada para baixo em cada run, o que dá 138 no total) e não minutos de runner
+macOS. A soma dos resumos de run fica alguns minutos abaixo dos 140 cobrados de verdade,
+porque cada resumo trunca o próprio número. O eixo da conta está no `README.md`: 2.000
+dividido pelo fator 10 dá 200 minutos de runner macOS no mês.
 
 ### Run 1: erro exato
 

@@ -112,8 +112,9 @@ por cima, sem desinstalar.
 ## Cota de minutos do GitHub Actions
 
 O repositório é privado. O orçamento da conta gratuita é de **2.000 minutos cobrados** por
-mês, e runner macOS consome **10 vezes** a duração do job: na prática, o teto é de
-**200 minutos de runner macOS por mês**, e não 2.000.
+mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de **200 minutos de
+runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
+é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
 Conta feita, com os quatro builds que já rodaram:
 
@@ -122,17 +123,25 @@ orçamento: 2.000 minutos cobrados por mês
 macOS: cada minuto de runner consome 10 minutos do orçamento
 teto real: 2.000 / 10 = 200 minutos de runner macOS por mês
 
-1 build com cache quente (medido 3m28s = 208 s) = 35 minutos cobrados
-4 builds (runs 1 a 4, dois falhos e dois verdes) = 141 minutos de runner = 1.410 minutos cobrados
+duração real de cada job, lida em gh run view <id> --json jobs:
+run 1 (falhou, 4m58s)  238 s
+run 2 (falhou, 3m21s)  201 s
+run 3 (verde, 3m28s)   208 s
+run 4 (verde, 3m13s)   193 s
+soma:                  840 s = 14 minutos de runner macOS
 
-sobrou: 2.000 - 1.410 = 590 minutos cobrados = 59 minutos de runner macOS
-59 / 3,5 minutos por build = cerca de 16 builds neste mês
+cobrado até agora: 14 x 10 = 140 minutos dos 2.000
+sobrou: 2.000 - 140 = 1.860 minutos cobrados
+1.860 / 10 = 186 minutos de runner macOS disponíveis
+186 / 3,5 minutos por build = cerca de 53 builds de 3m30s neste mês
 ```
 
-Ou seja: **restam cerca de 16 builds neste mês**, e não 1.859 minutos de macOS. Quando os
-200 minutos de runner macOS acabarem, os builds ficam bloqueados até a virada do ciclo de
-cobrança. Por isso o gatilho é manual: cada disparo é decisão consciente, não efeito
-colateral de commit. O resumo de cada run mostra a duração e a conta de minutos cobrados.
+Ou seja: **sobram 186 minutos de runner macOS**, que dão cerca de 53 builds de 3m30s, e não
+1.860 minutos de Mac. Quando os 200 minutos de runner macOS do mês acabarem, os builds ficam
+bloqueados até a virada do ciclo de cobrança. Por isso o gatilho é manual: cada disparo é
+decisão consciente, não efeito colateral de commit. O resumo de cada run mostra a duração e a
+conta de minutos cobrados, truncando para baixo run a run, então a soma dos resumos pode
+ficar alguns minutos abaixo do total cobrado.
 
 Se a cota estourar, existe a alternativa de pagar minutos avulsos, mas o combinado do
 projeto é ficar na cota gratuita.
