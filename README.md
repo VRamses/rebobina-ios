@@ -18,13 +18,13 @@ provisória, só para provar que o pipeline desenha na tela do iPhone. A interfa
 verdade entra na rodada de UX.
 
 Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) já estão no
-repositório, copiados do `rebobina-servidor` na versão 1.0.5, com o Kotlin deles gerado e
+repositório, copiados do `rebobina-servidor` na versão 1.0.6, com o Kotlin deles gerado e
 travado no build e no CI. Detalhe na seção [Os tokens de desenho](#os-tokens-de-desenho).
 Quem ainda não usa os tokens é a tela: ela continua provisória até a rodada de UX.
 
-O build do IPA já foi provado: o run #6 (id 45103365358) gerou o artefato
-`rebobina-ios-ipa-6` com `Rebobina.ipa` de 9.169.809 bytes (8,74 MiB), sha256
-`ad163c1bb14492d98424df9c1577595c911468c6d75e8835d5ec1bf037df96d0`. O que ainda **não** foi
+O build do IPA já foi provado: o run #7 (id 45107159058) gerou o artefato
+`rebobina-ios-ipa-7` com `Rebobina.ipa` de 9.169.810 bytes (8,74 MiB), sha256
+`ff3f748a43b4b25d54a3a4cd7192c358416968900b839d9a3846d4ce35d54a5e`. O que ainda **não** foi
 provado é abrir o app num iPhone, porque esta rodada não tem iPhone nem Mac para testar.
 Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
 
@@ -33,7 +33,9 @@ run #6. A explicação provável do salto do run #4 para o #5 é a entrada do
 `ReboTokensGerado.kt` no `commonMain`: ele referencia `TextStyle`, `FontWeight`, `dp` e `sp`,
 o que puxa o stack de texto do Compose para dentro do link estático do framework. O segundo
 salto, de uns 15 KB, acompanha o `ReboTextos.kt` e os objetos novos da 1.0.5. É medida e
-hipótese, não causa provada por contagem de símbolo.
+hipótese, não causa provada por contagem de símbolo. O run #7, da 1.0.6, só mudou prosa e
+ferramenta, e o IPA ficou do mesmo tamanho (9.169.810 bytes, 1 byte acima do run #6): é o
+comportamento esperado quando nenhum valor de desenho muda, e confirma a leitura do salto.
 
 **Se o iPhone estiver em iOS anterior ao 26, o app provavelmente não abre.** O motivo, o
 diagnóstico e as duas saídas estão no começo do [docs/ESTADO.md](docs/ESTADO.md).
@@ -129,7 +131,7 @@ mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de 
 runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
 é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
-Conta feita, com os seis builds que já rodaram:
+Conta feita, com os sete builds que já rodaram:
 
 ```
 orçamento: 2.000 minutos cobrados por mês
@@ -143,15 +145,16 @@ run 3 (verde, 3m28s)   208 s
 run 4 (verde, 3m13s)   193 s
 run 5 (verde, 4m21s)   261 s
 run 6 (verde, 3m47s)   227 s
-soma:                  1.328 s = 22 minutos e 8 segundos de runner macOS
+run 7 (verde, 3m36s)   216 s
+soma:                  1.544 s = 25 minutos e 44 segundos de runner macOS
 
-cobrado até agora: 22,13 x 10 = 221,3 minutos dos 2.000
-sobrou: 2.000 - 221,3 = 1.778,7 minutos cobrados
-1.778,7 / 10 = 177,87 minutos de runner macOS disponíveis
-177,87 / 3,5 minutos por build = cerca de 50 builds de 3m30s neste mês
+cobrado até agora: 25,73 x 10 = 257,3 minutos dos 2.000
+sobrou: 2.000 - 257,3 = 1.742,7 minutos cobrados
+1.742,7 / 10 = 174,27 minutos de runner macOS disponíveis
+174,27 / 3,5 minutos por build = cerca de 49 builds de 3m30s neste mês
 ```
 
-Ou seja: **sobram cerca de 177 minutos de runner macOS**, que dão cerca de 50 builds de 3m30s.
+Ou seja: **sobram cerca de 174 minutos de runner macOS**, que dão cerca de 49 builds de 3m30s.
 A conta acima trunca a duração de cada job ao minuto, então o número é o piso do gasto: o
 GitHub arredonda cada job para cima ao faturar, e o total real pode ficar alguns minutos
 acima. Não reconferi essa regra na documentação do GitHub nesta rodada.
@@ -203,9 +206,12 @@ docs/ESTADO.md                            o que está provado e o que não está
 
 Cor, tipo, espaço, raio, movimento e os textos de estado vêm de um JSON só, o
 `design/tokens/rebobina-tokens.json` do repositório `rebobina-servidor`. Este repositório tem
-uma cópia byte a byte em `design/tokens/`, versão **1.0.5**, 26.327 bytes, sha256
-`a043d42591c4e91dc947054bbc43a1e5152c423423802f17d798710d0522e7b5`, copiada do commit
-`0d9f035ddb7ae0beb71190e55398124ce72eb402`.
+uma cópia byte a byte em `design/tokens/`, versão **1.0.6**, 28.557 bytes, sha256
+`005401d0bf9a13f81687837c547317ca8083a5feaffb3c0e519fde222fa76c7a`, copiada do commit
+`8604b02c095e2ea7dbdfeb165f85f9b2a9f110bb`. A 1.0.6 não mexeu em valor de desenho: corrigiu
+prosa de `meta`, `canonico`, `consumidores` e `geracao` e estendeu o `conferir.mjs`. Por isso
+os dois `.kt` mudaram só na linha de cabeçalho que cita a versão e o sha256 do JSON, e o
+tamanho dos dois e os 20 objetos continuam os mesmos.
 
 O Kotlin que o app usa é gerado, nunca escrito à mão, e são dois arquivos:
 
