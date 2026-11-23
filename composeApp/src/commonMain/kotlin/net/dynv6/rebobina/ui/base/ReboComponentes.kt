@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import net.dynv6.rebobina.dados.Imagens
 import net.dynv6.rebobina.dados.MidiaCartao
 import net.dynv6.rebobina.ui.tokens.ReboColor
+import net.dynv6.rebobina.ui.tokens.ReboTextos
 import net.dynv6.rebobina.ui.tokens.ReboSelo as ReboSeloToken
 import net.dynv6.rebobina.ui.tokens.ReboMotion
 
@@ -289,7 +290,7 @@ fun ReboCabecalhoTela(
         )
         if (aoVoltar != null) {
             ReboBotao(
-                texto = ReboRotulos.SETA_VOLTAR + " " + ReboRotulos.VOLTAR,
+                texto = ReboRotulos.SETA_VOLTAR + " " + ReboTextos.Interface.Comum.Voltar,
                 aoTocar = aoVoltar,
                 tom = ReboBotaoTom.Discreto,
                 celular = celular,

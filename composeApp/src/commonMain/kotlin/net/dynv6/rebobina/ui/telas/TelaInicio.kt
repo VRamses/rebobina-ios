@@ -26,6 +26,7 @@ import net.dynv6.rebobina.ui.base.ReboGradeDeCartoes
 import net.dynv6.rebobina.ui.base.ReboRotulos
 import net.dynv6.rebobina.ui.base.reboColunasCatalogo
 import net.dynv6.rebobina.ui.tokens.ReboColor
+import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
  * Inicio: palavra do app, quem esta logado, trilho de "continuar assistindo" e grade de
@@ -93,7 +94,7 @@ private fun ConteudoInicio(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = ReboRotulos.NOME_DO_APP,
+                    text = ReboTextos.Interface.Comum.Marca,
                     style = ReboEstilo.tituloTela(celular).copy(color = ReboColor.Ink),
                 )
                 Text(
@@ -107,7 +108,7 @@ private fun ConteudoInicio(
             )
             Spacer(Modifier.width(ReboDimensao.EspacoN1))
             ReboBotao(
-                texto = ReboRotulos.ABA_AJUSTES,
+                texto = ReboTextos.Interface.Comum.Ajustes,
                 aoTocar = aoAbrirAjustes,
                 tom = ReboBotaoTom.Discreto,
                 celular = celular,

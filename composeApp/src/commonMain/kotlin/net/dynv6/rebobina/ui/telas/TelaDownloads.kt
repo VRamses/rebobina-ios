@@ -15,6 +15,7 @@ import net.dynv6.rebobina.ui.base.ReboFaixa
 import net.dynv6.rebobina.ui.base.ReboFio
 import net.dynv6.rebobina.ui.base.ReboRotulos
 import net.dynv6.rebobina.ui.tokens.ReboColor
+import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
  * Downloads: a fila deste aparelho.
@@ -37,7 +38,7 @@ fun TelaDownloads(
             .padding(horizontal = ReboDimensao.MargemCelular)
             .padding(top = ReboDimensao.EspacoN3, bottom = ReboDimensao.EntreSecoes),
     ) {
-        ReboCabecalhoTela(titulo = ReboRotulos.DOWNLOADS_CABECALHO, celular = celular)
+        ReboCabecalhoTela(titulo = ReboTextos.Interface.Comum.Downloads, celular = celular)
         Text(
             text = ReboRotulos.DOWNLOADS_RESUMO,
             style = ReboEstilo.meta(celular).copy(color = ReboColor.Ink3),
@@ -49,7 +50,7 @@ fun TelaDownloads(
             celular = celular,
             aoTocarAcao = aoVoltarAoCatalogo,
             titulo = ReboRotulos.FILA_VAZIA_TITULO,
-            corpo = ReboRotulos.FILA_VAZIA_CORPO,
+            corpo = ReboTextos.Interface.Downloads.FilaVazia,
             acao = ReboRotulos.FILA_VAZIA_ACAO,
         )
         Spacer(Modifier.height(ReboDimensao.AntesDeSecao))

@@ -23,6 +23,7 @@ import net.dynv6.rebobina.ui.base.ReboFio
 import net.dynv6.rebobina.ui.base.ReboLinhaDeMidia
 import net.dynv6.rebobina.ui.base.ReboRotulos
 import net.dynv6.rebobina.ui.tokens.ReboColor
+import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
  * Busca: campo, sugestoes e resultados do `/Items?searchTerm=`.
@@ -65,7 +66,7 @@ fun TelaBusca(
             .padding(horizontal = ReboDimensao.MargemCelular)
             .padding(top = ReboDimensao.EspacoN3),
     ) {
-        ReboCabecalhoTela(titulo = ReboRotulos.BUSCAR, celular = celular)
+        ReboCabecalhoTela(titulo = ReboTextos.Interface.Comum.Buscar, celular = celular)
         ReboCampo(
             valor = termo,
             aoMudar = { termo = it },
@@ -75,15 +76,15 @@ fun TelaBusca(
         Spacer(Modifier.height(ReboDimensao.EspacoN2))
         Row(horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2)) {
             ReboChip(
-                texto = ReboRotulos.SUGESTAO_FILMES,
+                texto = ReboTextos.Interface.Comum.Filmes,
                 ativa = false,
-                aoTocar = { termo = ReboRotulos.SUGESTAO_FILMES },
+                aoTocar = { termo = ReboTextos.Interface.Comum.Filmes },
                 celular = celular,
             )
             ReboChip(
-                texto = ReboRotulos.SUGESTAO_SERIES,
+                texto = ReboTextos.Interface.Comum.Series,
                 ativa = false,
-                aoTocar = { termo = ReboRotulos.SUGESTAO_SERIES },
+                aoTocar = { termo = ReboTextos.Interface.Comum.Series },
                 celular = celular,
             )
             ReboChip(
@@ -154,7 +155,7 @@ private fun ResultadosDaBusca(
     ) {
         item {
             Text(
-                text = ReboRotulos.RESULTADOS,
+                text = ReboTextos.Interface.Comum.Resultados,
                 style = ReboEstilo.tituloSecao(celular).copy(color = ReboColor.Ink),
             )
         }

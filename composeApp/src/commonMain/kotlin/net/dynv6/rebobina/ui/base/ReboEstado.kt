@@ -129,7 +129,7 @@ fun ReboEstadoFalha(
                 )
                 if (aoAbrirAjustes != null) {
                     ReboBotao(
-                        texto = ReboRotulos.ABA_AJUSTES,
+                        texto = ReboTextos.Interface.Comum.Ajustes,
                         aoTocar = aoAbrirAjustes,
                         tom = ReboBotaoTom.Contorno,
                         celular = celular,

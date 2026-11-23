@@ -7,8 +7,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // GERADO A PARTIR DE design/tokens/rebobina-tokens.json. NAO EDITAR A MAO.
-// fonte: rebobina-tokens 1.0.8, 2026-11-23, Yara Baptista.
-// sha256 do JSON: c39b8fe77bfe82fa57c0a1c5044dc1a16636177e9ed239f34a4641f57077ca98
+// fonte: rebobina-tokens 1.1.0, 2026-11-23, Yara Baptista.
+// sha256 do JSON: 622f1495f8767b4bf3e6b7bbf6a0fcc0e784d9feca6c9452d6926190cf1ae10c
 // canonico: rebobina-servidor main design/tokens/rebobina-tokens.json.
 // familia: system-ui, Roboto, -apple-system, Segoe UI, sans-serif.
 // Sem fonte propria no repositorio (tipo.familia.propria = false): em Compose a pilha do

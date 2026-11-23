@@ -1,6 +1,6 @@
 // GERADO A PARTIR DE design/tokens/rebobina-tokens.json. NAO EDITAR A MAO.
-// fonte: rebobina-tokens 1.0.8, 2026-11-23, Yara Baptista.
-// sha256 do JSON: c39b8fe77bfe82fa57c0a1c5044dc1a16636177e9ed239f34a4641f57077ca98
+// fonte: rebobina-tokens 1.1.0, 2026-11-23, Yara Baptista.
+// sha256 do JSON: 622f1495f8767b4bf3e6b7bbf6a0fcc0e784d9feca6c9452d6926190cf1ae10c
 // Gerado por design/tokens/gerar-kotlin.mjs. Para mudar palavra, mude o JSON na origem.
 // A folha de estilo nao carrega texto: no web e no webOS o mesmo conteudo sai em rebobina-textos.json.
 
@@ -49,6 +49,33 @@ object ReboTextos {
         object Atencao {
             const val Texto = "ATENÇÃO"
             const val Cor = "warn"
+        }
+    }
+    object Interface {
+        object Comum {
+            const val Marca = "Rebobina"
+            const val Inicio = "Início"
+            const val Ajustes = "Ajustes"
+            const val Downloads = "Downloads"
+            const val Buscar = "Buscar"
+            const val Filmes = "Filmes"
+            const val Series = "Séries"
+            const val Todos = "Todos"
+            const val Assistir = "Assistir"
+            const val Voltar = "Voltar"
+            const val Salvar = "Salvar"
+            const val Elenco = "Elenco"
+            const val Sugestoes = "Sugestões"
+            const val Resultados = "Resultados"
+        }
+        object Ficha {
+            const val SemSinopse = "Sem sinopse cadastrada."
+        }
+        object Player {
+            const val Pausado = "Pausado."
+        }
+        object Downloads {
+            const val FilaVazia = "O que você mandar preparar na ficha de um filme ou série aparece aqui, com progresso e o botão de assistir quando terminar."
         }
     }
 }

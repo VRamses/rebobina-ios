@@ -284,8 +284,8 @@ function declaracoesDeMedida() {
 }
 
 // ---- textos ----
-// A folha CSS e so estilo. Texto de estado e de selo e o mesmo nas seis
-// plataformas, entao sai num gerado proprio, com o sha256 do JSON na cabeca.
+// A folha CSS e so estilo. Texto de estado, de selo e de interface e o mesmo nas
+// seis plataformas, entao sai num gerado proprio, com o sha256 do JSON na cabeca.
 function escreverTextos() {
   var estados = {};
   Object.keys(tokens.estado || {}).forEach(function (nome) {
@@ -303,6 +303,17 @@ function escreverTextos() {
     if (!v) return;
     selo[nome] = { cor: v.cor, texto: v.texto };
   });
+  // interface.<assunto>.<campo> e texto de tela com chave de tres niveis; sai
+  // achatado no JSON de texto, porque o cliente le por caminho pontuado.
+  var interfaceTexto = {};
+  Object.keys(tokens.interface || {}).forEach(function (assunto) {
+    var campos = {};
+    Object.keys(tokens.interface[assunto] || {}).forEach(function (campo) {
+      var valor = tokens.interface[assunto][campo];
+      if (typeof valor === 'string') campos[campo] = valor;
+    });
+    if (Object.keys(campos).length) interfaceTexto[assunto] = campos;
+  });
   var conteudo = {
     nome: 'rebobina-textos',
     versao: meta.versao || '?',
@@ -310,13 +321,15 @@ function escreverTextos() {
     fonte: 'design/tokens/rebobina-tokens.json',
     sha256DoJson: real,
     gerado: 'design/tokens/rebobina-textos.json',
-    porque: 'texto de estado e de selo e o mesmo nas seis plataformas; trocar uma palavra e versao nova no JSON, nunca patch no cliente',
+    porque: 'texto de estado, de selo e de interface e o mesmo nas seis plataformas; trocar uma palavra e versao nova no JSON, nunca patch no cliente',
     estado: estados,
-    selo: selo
+    selo: selo,
+    interface: interfaceTexto
   };
   mkdirSync(AQUI, { recursive: true });
   writeFileSync(ARQUIVO_TEXTOS, JSON.stringify(conteudo, null, 2) + '\n', 'utf8');  process.stdout.write('textos: ' + relative(RAIZ, ARQUIVO_TEXTOS) + ' com ' +
-    Object.keys(estados).length + ' estados e ' + Object.keys(selo).length + ' selos\n');
+    Object.keys(estados).length + ' estados, ' + Object.keys(selo).length + ' selos e ' +
+    Object.keys(interfaceTexto).length + ' assuntos de interface\n');
 }
 
 // ---- escrita ----

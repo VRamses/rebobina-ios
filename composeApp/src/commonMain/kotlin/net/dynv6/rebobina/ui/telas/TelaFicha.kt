@@ -34,6 +34,7 @@ import net.dynv6.rebobina.ui.base.ReboRotulos
 import net.dynv6.rebobina.ui.base.ReboShape
 import net.dynv6.rebobina.ui.base.reboColunasCatalogo
 import net.dynv6.rebobina.ui.tokens.ReboColor
+import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
  * Ficha da midia: fundo, capa, titulo, meta, sinopse e as abas Episodios / Elenco / Similares,
@@ -96,7 +97,7 @@ fun TelaFicha(
 
 private enum class AbaDaFicha(val rotulo: String) {
     Episodios(ReboRotulos.EPISODIOS),
-    Elenco(ReboRotulos.ELENCO),
+    Elenco(ReboTextos.Interface.Comum.Elenco),
     Similares(ReboRotulos.SIMILARES),
 }
 
@@ -188,7 +189,7 @@ private fun ConteudoFicha(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ReboBotao(
-                    texto = if (ficha.percentualAssistido != null) ReboRotulos.CONTINUAR else ReboRotulos.ASSISTIR,
+                    texto = if (ficha.percentualAssistido != null) ReboRotulos.CONTINUAR else ReboTextos.Interface.Comum.Assistir,
                     aoTocar = { mostrarPendencia = true },
                     tom = ReboBotaoTom.Primario,
                     celular = celular,

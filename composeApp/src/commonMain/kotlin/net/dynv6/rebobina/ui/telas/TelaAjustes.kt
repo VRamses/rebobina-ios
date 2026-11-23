@@ -55,7 +55,7 @@ fun TelaAjustes(
             .padding(horizontal = ReboDimensao.MargemCelular)
             .padding(top = ReboDimensao.EspacoN3, bottom = ReboDimensao.EntreSecoes),
     ) {
-        ReboCabecalhoTela(titulo = ReboRotulos.ABA_AJUSTES, celular = celular, aoVoltar = aoVoltar)
+        ReboCabecalhoTela(titulo = ReboTextos.Interface.Comum.Ajustes, celular = celular, aoVoltar = aoVoltar)
         Spacer(Modifier.height(ReboDimensao.EspacoN3))
         ReboCampo(
             valor = ajustes.endereco,
@@ -88,7 +88,7 @@ fun TelaAjustes(
         Spacer(Modifier.height(ReboDimensao.AntesDeSecao))
         Row(horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2)) {
             ReboBotao(
-                texto = ReboRotulos.SALVAR,
+                texto = ReboTextos.Interface.Comum.Salvar,
                 aoTocar = {
                     ajustes.salvar()
                     salvo = true

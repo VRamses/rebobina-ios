@@ -72,11 +72,11 @@ fun App() {
 }
 
 private enum class Aba(val rotulo: String) {
-    Inicio(ReboRotulos.ABA_INICIO),
+    Inicio(ReboTextos.Interface.Comum.Inicio),
     Canais(ReboRotulos.ABA_CANAIS),
-    Downloads(ReboRotulos.ABA_DOWNLOADS),
+    Downloads(ReboTextos.Interface.Comum.Downloads),
     Busca(ReboRotulos.ABA_BUSCA),
-    Ajustes(ReboRotulos.ABA_AJUSTES),
+    Ajustes(ReboTextos.Interface.Comum.Ajustes),
 }
 
 @Composable

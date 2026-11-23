@@ -1,33 +1,35 @@
 package net.dynv6.rebobina.ui.base
 
 /**
- * Rotulos de interface que o JSON canonico NAO publica.
+ * Rotulos de interface que o JSON canonico ainda NAO publica.
  *
- * Escopo verificado em 23/11/2026 no `design/tokens/rebobina-tokens.json` 1.0.8 (sha256
- * c39b8fe7...): 488 folhas, e as unicas que sao texto de tela estao em `estado.*` e
- * `selo.variantes.*`. `geracao.textos.fonte` diz isso com todas as letras: "as chaves de
- * texto de estado.<estado> e de selo.variantes deste arquivo". Nao existe folha para nome de
- * aba, titulo de secao, rotulo de campo ou lugar-comum de botao.
+ * Escopo verificado em 23/11/2026 no `design/tokens/rebobina-tokens.json` 1.1.0 (sha256
+ * 622f1495f8767b4bf3e6b7bbf6a0fcc0e784d9feca6c9452d6926190cf1ae10c, 34.081 bytes): o
+ * grupo `interface` publica 17 chaves (comum 14, ficha 1, player 1, downloads 1) e o
+ * gerado as expoe em `ReboTextos.Interface.Comum`, `.Ficha`, `.Player` e `.Downloads`.
+ * Ele entra como terceira familia de texto do JSON, ao lado de `estado.*` e `selo.*`.
+ * Fora dessas tres, o arquivo continua sem folha para nome de aba, titulo de secao,
+ * rotulo de campo ou lugar-comum de botao.
  *
- * Consequencia pratica: tudo o que e *estado* (carregando, sem rede, erro, vazio, sem passe)
- * e o texto dos selos vem de `ReboTextos.kt` gerado, sem literal. Tudo o que e *rotulo de
- * navegacao e de campo* vive neste arquivo, uma vez, e e a unica lista de texto escrita a mao
- * no projeto. Se a prancha publicar essas chaves, este objeto vira apelido de ReboTextos e a
- * lista encolhe para zero, do mesmo jeito que `ReboProporcao`.
+ * A reimportacao da 1.1.0 trocou 16 constantes locais cujo valor coincidia com o canonico
+ * por leituras de `ReboTextos.Interface.*` e apagou esses constantes. Ficou aqui, de
+ * proposito:
  *
- * Isto e uma falta de token, nao uma escolha de estilo: foi pedida e esta declarada no
- * relatorio da rodada.
+ * - `SEM_SINOPSE`, porque o valor local ("Sem sinopse cadastrada no acervo.") diverge do
+ *   canonico ("Sem sinopse cadastrada."): trocar a frase e decisao de produto, nao
+ *   reimportacao, e a divergencia esta declarada no relatorio da rodada;
+ * - `player.pausado` nao tinha constante no iOS, entao a chave entrou no gerado sem
+ *   substituicao;
+ * - o resto, que nao tem chave canonica (abas Canais e Busca, titulos, campos e textos
+ *   declarados de rodada).
+ *
+ * Isto era falta de token, nao escolha de estilo: a 1.1.0 cobriu as 17 chaves e o que
+ * sobra continua declarado no relatorio da rodada.
  */
 object ReboRotulos {
-    const val NOME_DO_APP: String = "Rebobina"
-
     // Navegacao
-    const val ABA_INICIO: String = "Início"
     const val ABA_CANAIS: String = "Canais"
-    const val ABA_DOWNLOADS: String = "Downloads"
     const val ABA_BUSCA: String = "Busca"
-    const val ABA_AJUSTES: String = "Ajustes"
-    const val VOLTAR: String = "Voltar"
     const val SETA_VOLTAR: String = "‹"
     const val SETA_AVANCAR: String = "›"
 
@@ -40,9 +42,7 @@ object ReboRotulos {
     const val FICHA: String = "Ficha"
     const val SINOPSE: String = "Sinopse"
     const val EPISODIOS: String = "Episódios"
-    const val ELENCO: String = "Elenco"
     const val SIMILARES: String = "Similares"
-    const val ASSISTIR: String = "Assistir"
     const val CONTINUAR: String = "Continuar"
     const val BAIXAR: String = "Baixar"
     const val TEMPORADA: String = "Temporada"
@@ -54,7 +54,6 @@ object ReboRotulos {
     const val NOTA: String = "Nota"
 
     // Canais
-    const val TODOS: String = "Todos"
     const val AO_VIVO: String = "AO VIVO"
     const val SEM_GRADE: String = "Sem grade de programação no momento."
     const val CANAIS_CARREGANDO: String = "Carregando os canais"
@@ -63,10 +62,7 @@ object ReboRotulos {
 
     // Downloads
     const val FILA_VAZIA_TITULO: String = "Nada baixado ainda"
-    const val FILA_VAZIA_CORPO: String =
-        "O que você mandar preparar na ficha de um filme ou série aparece aqui, com progresso e o botão de assistir quando terminar."
     const val FILA_VAZIA_ACAO: String = "Voltar ao catálogo"
-    const val DOWNLOADS_CABECALHO: String = "Downloads"
     const val DOWNLOADS_RESUMO: String = "Fila deste aparelho"
     const val DOWNLOADS_PENDENTE: String =
         "O download em si entra na próxima rodada: esta tela mostra a fila vazia, sem inventar item."
@@ -76,13 +72,8 @@ object ReboRotulos {
         "Reprodutor e download entram na próxima rodada. Esta tela lê o acervo e não toca o arquivo."
 
     // Busca
-    const val BUSCAR: String = "Buscar"
     const val CAMPO_BUSCA: String = "Filme, série, canal"
-    const val SUGESTOES: String = "Sugestões"
-    const val RESULTADOS: String = "Resultados"
     const val LIMPAR: String = "Limpar"
-    const val SUGESTAO_FILMES: String = "Filmes"
-    const val SUGESTAO_SERIES: String = "Séries"
     const val SUGESTAO_ANIMES: String = "Animes"
     const val SUGESTAO_NOVELAS: String = "Novelas"
     const val BUSCA_VAZIA: String = "Digite o nome de um filme, série ou canal."
@@ -90,7 +81,6 @@ object ReboRotulos {
     // Ajustes
     const val ENDERECO_DO_SERVIDOR: String = "Endereço do servidor"
     const val CHAVE_DE_API: String = "Chave de API"
-    const val SALVAR: String = "Salvar"
     const val SALVO: String = "Salvo neste aparelho"
     const val TESTAR_CONEXAO: String = "Testar conexão"
     const val CONECTADO_COMO: String = "Conectado como"

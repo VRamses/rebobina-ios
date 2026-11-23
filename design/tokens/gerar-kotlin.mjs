@@ -400,11 +400,30 @@ function escreverTextosKotlin() {
     }
     linhas.push(IND + '}');
   }
+  // interface.<assunto>.<campo> vira object Interface.<Assunto>.<Campo>, com os
+  // dois niveis em PascalCase, para o cliente ler o caminho e nao uma chave solta.
+  const interfaceTexto = tokens.interface || {};
+  const assuntos = Object.keys(interfaceTexto);
+  if (assuntos.length) {
+    linhas.push(IND + 'object Interface {');
+    for (const assunto of assuntos) {
+      const campos = interfaceTexto[assunto] || {};
+      const chaves = Object.keys(campos).filter((chave) => typeof campos[chave] === 'string');
+      if (!chaves.length) continue;
+      linhas.push(IND + IND + 'object ' + pascal(assunto) + ' {');
+      for (const chave of chaves) {
+        linhas.push(IND + IND + IND + 'const val ' + pascal(chave) + ' = "' + escapar(campos[chave]) + '"');
+      }
+      linhas.push(IND + IND + '}');
+    }
+    linhas.push(IND + '}');
+  }
   linhas.push('}');
   mkdirSync(dirname(SAIDA_TEXTOS), { recursive: true });
   writeFileSync(SAIDA_TEXTOS, linhas.join('\n') + '\n', 'utf8');
   process.stdout.write('textos-kotlin: ' + relative(RAIZ, SAIDA_TEXTOS) + ' com ' +
-    Object.keys(estados).length + ' estados e ' + Object.keys(variantes).length + ' selos\n');
+    Object.keys(estados).length + ' estados, ' + Object.keys(variantes).length + ' selos e ' +
+    assuntos.length + ' assuntos de interface\n');
 }
 
 escreverTextosKotlin();

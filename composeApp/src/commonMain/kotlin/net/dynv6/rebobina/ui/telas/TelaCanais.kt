@@ -119,7 +119,7 @@ private fun ListaDeCanais(
                         style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
                     )
                     ReboBotao(
-                        texto = ReboRotulos.ABA_AJUSTES,
+                        texto = ReboTextos.Interface.Comum.Ajustes,
                         aoTocar = { aoRecarregar(); aoAbrirAjustes() },
                         tom = ReboBotaoTom.Contorno,
                         celular = celular,
