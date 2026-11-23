@@ -22,10 +22,11 @@ repositório, copiados do `rebobina-servidor` na versão 1.0.7, com o Kotlin del
 travado no build e no CI. Detalhe na seção [Os tokens de desenho](#os-tokens-de-desenho).
 Quem ainda não usa os tokens é a tela: ela continua provisória até a rodada de UX.
 
-O build do IPA já foi provado: o run #8 (id 45112444059) gerou o artefato
-`rebobina-ios-ipa-8` com `Rebobina.ipa` de 9.169.810 bytes (8,74 MiB), sha256
-`3d11d6e861942998242743d50518a96628d4beb32dfc622204b885c2f7b4da83`. O que ainda **não** foi
-provado é abrir o app num iPhone, porque esta rodada não tem iPhone nem Mac para testar.
+O build do IPA já foi provado: o run #9 (id 45166068336) gerou o artefato
+`rebobina-ios-ipa-9` com `Rebobina.ipa` de 9.170.102 bytes (8,75 MiB), sha256
+`bda93e37ce16644688dc7339eddd4e7a88fbbc5227c1b73082080a2dfc35e7fb`, e o `Info.plist` de
+dentro dele diz `MinimumOSVersion 17.0`. O que ainda **não** foi provado é abrir o app num
+iPhone, porque esta rodada não tem iPhone nem Mac para testar.
 Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
 
 O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 no run #5 e 9.121.985 no
@@ -37,10 +38,15 @@ hipótese, não causa provada por contagem de símbolo. O run #7, que só mudou 
 manteve o tamanho: 9.169.810 bytes, 1 byte acima do run #6. O run #8, que reimportou a 1.0.7,
 repetiu o tamanho do IPA (9.169.810 bytes) e do binário (24.882.120 bytes) e só trocou o sha256,
 porque o binário carrega a data do build. É o comportamento esperado quando nenhum valor de
-desenho muda, e confirma a leitura do salto.
+desenho muda, e confirma a leitura do salto. O run #9, que baixou o mínimo para iOS 17.0 e não
+tocou em desenho, manteve o binário em 24.882.120 bytes e deixou o IPA 292 bytes maior
+(9.170.102): a diferença é do zip e dos poucos bytes do cabeçalho Mach-O que declaram o
+`minos`, não de código.
 
-**Se o iPhone estiver em iOS anterior ao 26, o app provavelmente não abre.** O motivo, o
-diagnóstico e as duas saídas estão no começo do [docs/ESTADO.md](docs/ESTADO.md).
+**O alvo mínimo do app é iOS 17.** O binário linka contra o SDK do iOS 26, mas a classe
+`UIViewLayoutRegion` sai como weak import, então o dyld de um iPhone com iOS 17 a 25 não
+falha por ela. O histórico e o que não está provado estão no começo do
+[docs/ESTADO.md](docs/ESTADO.md).
 
 ## Baixar o IPA pronto (mais fácil)
 
@@ -133,7 +139,7 @@ mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de 
 runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
 é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
-Conta feita, com os oito builds que já rodaram:
+Conta feita, com os nove builds que já rodaram:
 
 ```
 orçamento: 2.000 minutos cobrados por mês
@@ -149,15 +155,16 @@ run 5 (verde, 4m21s)   261 s
 run 6 (verde, 3m47s)   227 s
 run 7 (verde, 3m36s)   216 s
 run 8 (verde, 4m01s)   241 s
-soma:                  1.785 s = 29 minutos e 45 segundos de runner macOS
+run 9 (verde, 4m32s)   272 s
+soma:                  2.057 s = 34 minutos e 17 segundos de runner macOS
 
-cobrado até agora: 29,75 x 10 = 297,5 minutos dos 2.000
-sobrou: 2.000 - 297,5 = 1.702,5 minutos cobrados
-1.702,5 / 10 = 170,25 minutos de runner macOS disponíveis
-170,25 / 3,5 minutos por build = cerca de 48 builds de 3m30s neste mês
+cobrado até agora: 34,28 x 10 = 342,8 minutos dos 2.000
+sobrou: 2.000 - 342,8 = 1.657,2 minutos cobrados
+1.657,2 / 10 = 165,72 minutos de runner macOS disponíveis
+165,72 / 3,5 minutos por build = cerca de 47 builds de 3m30s neste mês
 ```
 
-Ou seja: **sobram cerca de 170 minutos de runner macOS**, que dão cerca de 48 builds de 3m30s.
+Ou seja: **sobram cerca de 165 minutos de runner macOS**, que dão cerca de 47 builds de 3m30s.
 A conta acima trunca a duração de cada job ao minuto, então o número é o piso do gasto: o
 GitHub arredonda cada job para cima ao faturar, e o total real pode ficar alguns minutos
 acima. Não reconferi essa regra na documentação do GitHub nesta rodada.
