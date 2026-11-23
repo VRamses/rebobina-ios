@@ -17,8 +17,28 @@ iOS, projeto Xcode, build no GitHub Actions e IPA para instalar. A tela do app a
 provisoria, so para provar que o pipeline desenha na tela do iPhone. A interface de
 verdade entra na rodada de UX.
 
-O que esta provado e o que nao esta fica em [docs/ESTADO.md](docs/ESTADO.md), com o
-numero do run e o tamanho do artefato. Nada aqui e declarado pronto sem essa evidencia.
+O build do IPA ja foi provado: o run #3 gerou o artefato `rebobina-ios-ipa-3` com
+`Rebobina.ipa` de 7.571.684 bytes (7,22 MiB). O que ainda **nao** foi provado e abrir o
+app num iPhone, porque esta rodada nao tem iPhone nem Mac para testar. Detalhe por
+detalhe, com o numero de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
+
+## Baixar o IPA pronto (mais facil)
+
+Cada versao publicada vira uma **release** no repositorio, com o arquivo renomeado para
+o que se entende no Explorer e no Sideloadly:
+
+1. Abra <https://github.com/VRamses/rebobina-ios/releases>.
+2. Na release mais recente (por exemplo `v0.1.0`), baixe `Rebobina-0.1.0-unsigned.ipa`.
+3. Va para [Como instalar no iPhone](#como-instalar-no-iphone).
+
+Pelo terminal, com o `gh` instalado e logado na sua conta:
+
+```
+gh release download v0.1.0 -R VRamses/rebobina-ios
+```
+
+O repositorio e privado, entao o download so funciona logado como voce, no site ou no
+`gh`. A release fica guardada; o artefato do Actions vence em 14 dias.
 
 ## Como gerar o IPA
 
@@ -29,18 +49,21 @@ runner macOS, que em repositorio privado custam 10 vezes na cota do GitHub.
 2. Aba **Actions**.
 3. Na lista da esquerda, escolha **IPA iOS**.
 4. Botao **Run workflow**, escolha a branch `main`, escreva o motivo (opcional) e confirme.
-5. Espere o run terminar (na primeira vez, 12 a 20 minutos; depois, com cache, menos).
+5. Espere o run terminar (medido: 4m58s na primeira vez, com o toolchain Kotlin/Native
+   baixando; 3m28s quando o cache do toolchain ja existe).
 6. Abra o run, desca ate **Artifacts** e baixe `rebobina-ios-ipa-<numero do run>`.
-7. Descompacte: dentro tem `Rebobina.ipa`.
+7. Descompacte: dentro tem `Rebobina.ipa`. Esse e o arquivo cru do build; o que voce
+   instala no iPhone e o da release.
 
-Tambem da para gerar por tag:
+Tambem da para gerar por tag, e a tag vira release:
 
 ```
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-O artefato fica disponivel por 14 dias. Depois disso, rode de novo.
+O artefato do Actions fica disponivel por 14 dias. Depois disso, rode de novo ou use a
+release.
 
 ## Como instalar no iPhone
 
@@ -136,7 +159,11 @@ porque `NSAllowsLocalNetworking` cobre a rede local inteira.
 
 ## Rodar no Mac, se precisar
 
-Precisa de Xcode 16.4 ou mais novo e JDK 21.
+Precisa de **Xcode 26 ou mais novo**, porque o Compose Multiplatform 1.11.1 chama uma
+classe que so existe no SDK do iOS 26 (com Xcode 16.4 o link do app falha em
+`UIViewLayoutRegion`), e de JDK 21.
+
+O app roda em iOS 16 ou mais novo: o alvo minimo do projeto Xcode e 16.0.
 
 ```
 cd iosApp
