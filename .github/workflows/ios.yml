@@ -24,7 +24,11 @@ concurrency:
 jobs:
   ipa:
     name: Compilar IPA sem assinatura
-    runs-on: macos-15
+    # macos-26 (Xcode 26.x, SDK iOS 26) e nao macos-15 (Xcode 16.4, SDK iOS 18.5):
+    # o Compose Multiplatform 1.11.1 chama UIViewLayoutRegion em CMPLayoutRegion.o,
+    # classe que so existe no SDK do iOS 26. No SDK antigo o link do app falha com
+    # "Undefined symbols: _OBJC_CLASS_$_UIViewLayoutRegion".
+    runs-on: macos-26
     timeout-minutes: 45
 
     steps:
@@ -36,17 +40,24 @@ jobs:
       - name: Inicio do cronometro
         run: echo "INICIO_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
 
-      - name: Ferramentas do runner
+      - name: Ferramentas do runner e Xcode
         run: |
           set -euo pipefail
           echo "Motivo: ${{ github.event.inputs.motivo }}"
-          xcodebuild -version
+          echo "--- Xcodes instalados na imagem ---"
+          ls -d /Applications/Xcode*.app || true
+          NOVO="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
+          if [ -n "${NOVO:-}" ] && [ "$(xcode-select -p)" != "$NOVO/Contents/Developer" ]; then
+            echo "Selecionando $NOVO"
+            sudo xcode-select -s "$NOVO"
+          fi
+          echo "--- Xcode em uso ---"
           xcode-select -p
+          xcodebuild -version
           swift --version || true
-          echo "--- SDKs iPhone ---"
+          echo "--- SDK iOS de device ---"
+          xcrun --sdk iphoneos --show-sdk-version
           xcodebuild -showsdks | grep -i iphoneos || true
-          echo "--- Android SDK presente na imagem (o modulo tambem tem alvo Android) ---"
-          echo "ANDROID_HOME=${ANDROID_HOME:-vazio}"
 
       - name: Validar arquivos do projeto antes de gastar tempo
         run: |
@@ -87,20 +98,6 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew :composeApp:compileKotlinIosArm64 --stacktrace --console=plain 2>&1 | tee kotlin-compile.log
-
-      - name: Conferir framework privado do SDK
-        run: |
-          set -euo pipefail
-          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          echo "SDK: $SDK"
-          PRIV="$SDK/System/Library/PrivateFrameworks/UIUtilities.framework"
-          if [ -d "$PRIV" ]; then
-            echo "UIUtilities presente no SDK:"
-            ls -l "$PRIV"
-          else
-            echo "UIUtilities AUSENTE no SDK: $PRIV"
-            ls "$SDK/System/Library/PrivateFrameworks" | grep -i -E '^UI' || true
-          fi
 
       - name: Xcode archive sem assinatura
         run: |
