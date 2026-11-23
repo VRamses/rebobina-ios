@@ -88,6 +88,20 @@ jobs:
           set -o pipefail
           ./gradlew :composeApp:compileKotlinIosArm64 --stacktrace --console=plain 2>&1 | tee kotlin-compile.log
 
+      - name: Conferir framework privado do SDK
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "SDK: $SDK"
+          PRIV="$SDK/System/Library/PrivateFrameworks/UIUtilities.framework"
+          if [ -d "$PRIV" ]; then
+            echo "UIUtilities presente no SDK:"
+            ls -l "$PRIV"
+          else
+            echo "UIUtilities AUSENTE no SDK: $PRIV"
+            ls "$SDK/System/Library/PrivateFrameworks" | grep -i -E '^UI' || true
+          fi
+
       - name: Xcode archive sem assinatura
         run: |
           set -o pipefail
