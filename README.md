@@ -20,7 +20,7 @@ Ktor mínimo. O player fica para a próxima rodada, e os botões de assistir e d
 declaram isso em vez de fingir reprodução. `ui/TemaPlaceholder.kt` foi apagado.
 
 Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) continuam
-copiados do `rebobina-servidor` na versão 1.0.8, com o Kotlin deles gerado e travado no
+copiados do `rebobina-servidor` na versão 1.1.0, com o Kotlin deles gerado e travado no
 build e no CI. A camada que liga tela e token mora em `ui/base/`, e uma trava local
 (`scripts/conferir-desenho.mjs`) reprova cor ou tamanho escrito à mão em tela. Detalhe nas
 seções [Os tokens de desenho](#os-tokens-de-desenho) e
@@ -33,14 +33,16 @@ dentro dele diz `MinimumOSVersion 17.0`. O que ainda **não** foi provado é abr
 iPhone, porque esta rodada não tem iPhone nem Mac para testar.
 Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
 
-O IPA desta rodada é o do run #10 (id 45177622503, 23/11/2026), o primeiro com as telas e o
-cliente Jellyfin dentro do binário: artefato `rebobina-ios-ipa-10` com 10.586.276 bytes (zip),
-`Rebobina.ipa` de 10.635.214 bytes (10,14 MiB), sha256
-`12c27b48b3119eb2e991b8b6dc5fd6f5f13e7cf075d659b4cd548f83864a529d`, binário `Rebobina` de
-29.581.704 bytes, job verde em 4m29s, cerca de 44,8 minutos cobrados. O `Info.plist` de dentro
-dele mantém `MinimumOSVersion 17.0`, e o passo extra do CI provou que o mesmo `commonMain`
-compila também para Android (`ANDROID_COMPILOU=sim`). O que ele **não** prova é a tela
-desenhada nem a chamada ao Jellyfin em execução: só um iPhone abrindo o app prova isso.
+O último IPA medido em detalhe é o do run #11 (id 45206725111, 23/11/2026), o primeiro com a
+reimportação do canônico 1.1.0: artefato `rebobina-ios-ipa-11` com 10.583.573 bytes (zip),
+`Rebobina.ipa` de 10.634.122 bytes (10,14 MiB), sha256
+`8d08d080eda6e2acd372ef2b72ae4eba07575f33a2b4dc9068155e5503c0634c`, binário `Rebobina` de
+29.581.904 bytes, job verde em 4m42s, cerca de 46 minutos cobrados. O `Info.plist` de dentro
+dele não foi aberto nesta rodada; o do run #10 dizia `MinimumOSVersion 17.0`. O passo extra do
+CI provou que o mesmo `commonMain` compila também para Android: o run #11 mostra
+`ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` e `BUILD SUCCESSFUL in 9s`. O que
+ele **não** prova é a tela desenhada nem a chamada ao Jellyfin em execução: só um iPhone
+abrindo o app prova isso.
 
 O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 no run #5 e 9.121.985 no
 run #6. A explicação provável do salto do run #4 para o #5 é a entrada do
@@ -63,6 +65,10 @@ A leitura é medida, não contagem de símbolo: o salto acompanha a entrada de
 `kotlinx-serialization-json`, `kotlinx-coroutines-core`, do cache de imagem e das seis telas
 com os componentes de `ui/base`, que puxam `TextField`, `LazyColumn` e `ScrollState` do
 Compose. Nenhum valor de token mudou nesta rodada, que é o que o `sha256` da trava confirma.
+
+O run #11, que só trocou texto de interface pelo gerado, deixou o binário 200 bytes maior
+(29.581.904) e o IPA 1.092 bytes menor (10.634.122): a diferença é de string e de zip, não de
+código novo, e nenhum valor de desenho mudou.
 
 **O alvo mínimo do app é iOS 17.** O binário linka contra o SDK do iOS 26, mas a classe
 `UIViewLayoutRegion` sai como weak import, então o dyld de um iPhone com iOS 17 a 25 não
@@ -160,7 +166,7 @@ mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de 
 runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
 é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
-Conta feita, com os dez builds que já rodaram:
+Conta feita, com os onze builds que já rodaram:
 
 ```
 orçamento: 2.000 minutos cobrados por mês
@@ -178,15 +184,16 @@ run 7 (verde, 3m36s)   216 s
 run 8 (verde, 4m01s)   241 s
 run 9 (verde, 4m32s)   272 s
 run 10 (verde, 4m29s)  269 s
-soma:                  2.326 s = 38 minutos e 46 segundos de runner macOS
+run 11 (verde, 4m35s)  275 s
+soma:                  2.601 s = 43 minutos e 21 segundos de runner macOS
 
-cobrado até agora: 38,77 x 10 = 387,7 minutos dos 2.000
-sobrou: 2.000 - 387,7 = 1.612,3 minutos cobrados
-1.612,3 / 10 = 161,23 minutos de runner macOS disponíveis
-161,23 / 3,5 minutos por build = cerca de 46 builds de 3m30s neste mês
+cobrado até agora: 43,35 x 10 = 433,5 minutos dos 2.000
+sobrou: 2.000 - 433,5 = 1.566,5 minutos cobrados
+1.566,5 / 10 = 156,65 minutos de runner macOS disponíveis
+156,65 / 3,5 minutos por build = cerca de 44 builds de 3m30s neste mês
 ```
 
-Ou seja: **sobram cerca de 161 minutos de runner macOS**, que dão cerca de 46 builds de 3m30s.
+Ou seja: **sobram cerca de 156 minutos de runner macOS**, que dão cerca de 44 builds de 3m30s.
 A conta acima trunca a duração de cada job ao minuto, então o número é o piso do gasto: o
 GitHub arredonda cada job para cima ao faturar, e o total real pode ficar alguns minutos
 acima. Não reconferi essa regra na documentação do GitHub nesta rodada.
@@ -264,14 +271,19 @@ docs/ESTADO.md                            o que está provado e o que não está
 
 Cor, tipo, espaço, raio, movimento e os textos de estado vêm de um JSON só, o
 `design/tokens/rebobina-tokens.json` do repositório `rebobina-servidor`. Este repositório tem
-uma cópia byte a byte em `design/tokens/`, versão **1.0.8**, 31.413 bytes, sha256
-`c39b8fe77bfe82fa57c0a1c5044dc1a16636177e9ed239f34a4641f57077ca98`, copiada do commit
-`0e06bcea3354b010996545b9016979d012bef3f6`. A 1.0.8 só acrescentou a grade do celular:
+uma cópia byte a byte em `design/tokens/`, versão **1.1.0**, 34.081 bytes, sha256
+`622f1495f8767b4bf3e6b7bbf6a0fcc0e784d9feca6c9452d6926190cf1ae10c`, copiada do commit
+`7ed7dcfc392cd77f7e5c2eb7a0ed6562a7edb34c`. A 1.1.0 não mexeu em nenhum valor de desenho:
+acrescentou o grupo `interface` com 17 textos em quatro assuntos (`comum` 14,
+`ficha.semSinopse`, `player.pausado` e `downloads.filaVazia`), com as frases que já coincidiam
+entre plataformas. A folha foi de 403 para 420 folhas, e só mudou texto de documentação e de
+geração: nenhum valor de cor, tipo, espaço, raio, movimento, ícone, traço, selo, estado ou
+plataforma mudou. Antes dela, a 1.0.8 tinha acrescentado a grade do celular:
 `LarguraCartao = 140`, `ColunasCanalVertical = 2` e `ColunasCanalHorizontal = 4` em
-`ReboGrade.Ios` e no espelho `ReboGrade.Celular`, sem mexer em valor existente. Antes dela, a
-1.0.7 tinha corrigido a convenção do espaço no Kotlin, que dizia `ReboSpace.x<n>` quando o
-gerador sempre emitiu `ReboSpace.N<indice>` de `N0` a `N9`, e fez o `conferir.mjs` rodar dentro
-de um cliente que só recebe Kotlin, sem o `rebobina-textos.json`.
+`ReboGrade.Ios` e no espelho `ReboGrade.Celular`. A 1.0.7, antes dessa, tinha corrigido a
+convenção do espaço no Kotlin, que dizia `ReboSpace.x<n>` quando o gerador sempre emitiu
+`ReboSpace.N<indice>` de `N0` a `N9`, e fez o `conferir.mjs` rodar dentro de um cliente que só
+recebe Kotlin, sem o `rebobina-textos.json`.
 
 O Kotlin que o app usa é gerado, nunca escrito à mão, e são dois arquivos:
 
@@ -280,8 +292,9 @@ O Kotlin que o app usa é gerado, nunca escrito à mão, e são dois arquivos:
   `ReboTypePisos`, `ReboTypeNumeros`, `ReboSpace`, `ReboSpaceUso`, `ReboRadius`, `ReboMotion`,
   `ReboMotionReducao`, `ReboSelo`, `ReboIconeTamanho`, `ReboTraco`, `ReboEstadoApos`,
   `ReboEstadoCarregando`, `ReboSize` e `ReboGrade`;
-- `ReboTextos.kt`, 1.975 bytes, os 5 estados (`carregando`, `semRede`, `erro`, `vazio`,
-  `semPasse`) e 3 selos em texto, do mesmo JSON.
+- `ReboTextos.kt`, 2.996 bytes, os 5 estados (`carregando`, `semRede`, `erro`, `vazio`,
+  `semPasse`), 3 selos e o grupo `interface` em `ReboTextos.Interface` (`Comum`, `Ficha`,
+  `Player` e `Downloads`), do mesmo JSON.
 
 Comando que gera os dois, e é o mesmo que o CI roda:
 
@@ -293,7 +306,7 @@ node design/tokens/gerar-kotlin.mjs \
 ```
 
 Com a linha do pacote normalizada, os dois saem idênticos aos arquivos de referência do
-canônico, que têm 12.683 e 1.976 bytes porque o pacote de lá é `rebobina.android.ui.base.rebo`,
+canônico, que têm 12.683 e 2.997 bytes porque o pacote de lá é `rebobina.android.ui.base.rebo`,
 um caractere mais longo que `net.dynv6.rebobina.ui.tokens`.
 
 A trava roda em dois lugares com a mesma implementação, `scripts/conferir-tokens.mjs`:
@@ -351,14 +364,19 @@ A camada de desenho, toda em `commonMain/ui/base/`:
 - `ReboEstado.kt`: carregando, falha e vazio, com o texto de `ReboTextos.kt` gerado;
 - `ReboTema.kt`: `MaterialTheme` escuro mapeado nos tokens, só como casca: as telas leem
   `ReboColor`, não `MaterialTheme`;
-- `ReboRotulos.kt`: os rótulos de navegação, campo e seção que o JSON canônico não publica.
+- `ReboRotulos.kt`: os rótulos de navegação, campo e seção que o JSON canônico ainda não
+  publica: 43 constantes depois da 1.1.0, contra 59 antes dela.
 
 Limites declarados desta rodada, sem invenção de dado:
 
 - o player e o download não existem: os botões mostram `ReboRotulos.PENDENTE_REPRODUTOR`;
 - `ReboRotulos` e `FormatoDeTexto` (duração, temporada, episódio, tipo de mídia e separador)
-  são texto escrito à mão porque o JSON 1.0.8 tem 488 folhas e nenhuma delas é rótulo de
-  navegação, de campo ou de seção: só `estado.*` e `selo.variantes.*` são texto de tela;
+  continuam texto escrito à mão porque o JSON 1.1.0 não tem frase de tela fora de `estado.*`,
+  `selo.variantes.*.texto` e `interface.*`: nas outras chaves com texto o conteúdo é
+  documentação da folha (`meta`, `canonico`, `consumidores`, `geracao`, `tipo`, `movimento`) ou
+  valor (`cor` em hexadecimal, `plataforma` em unidade e escala). A 1.1.0 permitiu apagar 16
+  constantes locais e ler o gerado; `SEM_SINOPSE` ficou porque o valor local diz "no acervo" e
+  o canônico não, e trocar a frase é decisão de produto;
 - o tema claro (`ReboColorClaro`) existe no gerado e não é usado: esta rodada é escura só;
 - as imagens de capa são buscadas em 300 px e as de fundo em 1200 px, valores escolhidos
   aqui e não vindos do JSON: o token de tamanho de arte não existe;
@@ -368,9 +386,11 @@ Limites declarados desta rodada, sem invenção de dado:
 - os 7 testes de `ReboAdaptativoTest` existem e nunca rodaram: o CI compila
   `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`, não a suíte, e esta
   máquina não tem JDK nem Gradle para rodar `iosSimulatorArm64Test`;
-- nenhuma tela foi vista em aparelho nesta rodada: o IPA do run #10 contém as strings das
-  telas e do cliente, o que prova que o código está no binário, não que a tela desenha ou que
-  o servidor responde.
+- nenhuma tela foi vista em aparelho nesta rodada: o binário do run #11 tem 29.581.904 bytes e
+  contém, em UTF-16LE, as strings `Séries` (deslocamento 28749106), `Ainda carregando`,
+  `Tentar de novo`, `Sem conexão` e, em UTF-8 e UTF-16LE, `Ajustes`, `Downloads` e `Assistir`,
+  o que prova que o texto do canônico 1.1.0 entrou no binário, não que a tela desenha ou que o
+  servidor responde.
 
 A trava do desenho roda local e no CI, antes do build:
 
@@ -382,8 +402,8 @@ Ela reprova `Color(0x...)`, `Color.<nome>`, hexadecimal e `.dp`/`.sp` literal em
 `ui/telas`, exige `ReboRotulos` e um componente de estado em cada tela (Ajustes de fora,
 porque o estado dela é o resultado de "Testar conexão") e, no fim, chama a trava dos tokens.
 Saída desta rodada: `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` e
-`trava dos tokens: ok, versao 1.0.8`. No CI ela é dependência das tarefas `compileKotlin*` e
-`check`, então o log do run #10 mostra `> Task :composeApp:conferirDesenho` e a mesma linha
+`trava dos tokens: ok, versao 1.1.0`. No CI ela é dependência das tarefas `compileKotlin*` e
+`check`, então o log do run #11 mostra `> Task :composeApp:conferirDesenho` e a mesma linha
 duas vezes, no passo "Compilar Kotlin (iOS arm64)" e dentro do archive. A trava é textual:
 ela não prova pixel nem beleza, e a comparação com o Android só valeria com captura de tela
 dos dois lados, que esta rodada não tem.

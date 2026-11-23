@@ -31,15 +31,15 @@ O que fazer, em três linhas:
    contradição com o weak import provado no IPA: me avise em vez de reinstalar.
 
 Resumo: o build do IPA funciona no GitHub Actions e o IPA está publicado como release
-`v0.1.0`, com o arquivo renomeado para baixar e instalar. Os tokens de desenho na versão 1.0.8
+`v0.1.0`, com o arquivo renomeado para baixar e instalar. Os tokens de desenho na versão 1.1.0
 estão no repositório, com o JSON copiado byte a byte em `design/tokens` e o Kotlin gerado em
 `commonMain`, travados no build e no CI. A rodada de 23/11/2026 apagou o `TemaPlaceholder.kt`:
 as cinco telas do Android mais Ajustes estão escritas só com os tokens, com as duas faixas de
-layout e um cliente Ktor que lê o Jellyfin de verdade. O run #10 compilou tudo, rodou as duas
-travas dentro do CI e publicou o IPA de 10.635.214 bytes com as strings das telas e do cliente
-dentro do binário. O que falta agora não é build: é abrir o app num iPhone de verdade, que
-não dá para testar desta máquina, e é isso que separa "compila e entra no IPA" de "desenha e lê
-o acervo".
+layout e um cliente Ktor que lê o Jellyfin de verdade. O run #10 compilou as telas; o run #11
+reimportou a 1.1.0, apagou 16 constantes locais que viraram canônicas, rodou as duas travas
+dentro do CI e publicou o IPA de 10.634.122 bytes com o texto gerado dentro do binário. O que
+falta agora não é build: é abrir o app num iPhone de verdade, que não dá para testar desta
+máquina, e é isso que separa "compila e entra no IPA" de "desenha e lê o acervo".
 
 ## O que está provado, com evidência
 
@@ -55,7 +55,7 @@ o acervo".
 | 8 | O IPA tem download fácil, fora do Actions | release `v0.1.0` no commit `8e72fa0` (o mesmo do run #3), título "Rebobina iOS 0.1.0 (IPA sem assinatura)", asset `Rebobina-0.1.0-unsigned.ipa` com 7.571.684 bytes (7,22 MiB), sha256 `6fa5f17ff398e5575a735d8ba0270b3e59f7543cd6640fc9231077944ba42ee6`, estado `uploaded`, lido em `gh release view v0.1.0 --json assets` |
 | 9 | O asset publicado é exatamente o IPA do run #3 | baixei o artefato do run 45094376845, calculei o sha256 do `Rebobina.ipa` de dentro dele (6fa5f17f...) e publiquei esse arquivo sem recompilar e sem reempacotar |
 | 10 | O gatilho por tag também funciona | o push da tag `v0.1.0`, feito pela criação da release, disparou o run #4 (id 45095174609), que terminou `success` em 3m13s e publicou o artefato `rebobina-ios-ipa-4` |
-| 11 | Os tokens de desenho são cópia byte a byte da origem 1.0.8 | `design/tokens/rebobina-tokens.json` com 31.413 bytes e sha256 `c39b8fe77bfe82fa57c0a1c5044dc1a16636177e9ed239f34a4641f57077ca98`, igual ao primeiro campo do `rebobina-tokens.sha256` (86 bytes sem newline final, sha256 `36e887ec6de87fd8e151e1f5448d65754e0195e699190a030c660903f3b1fd7f`), copiado do commit `0e06bcea3354b010996545b9016979d012bef3f6` do `rebobina-servidor`, com o clone local naquele commit e `Get-FileHash` nos dois lados; os geradores continuam iguais ao canônico (`gerar.mjs` 14.916 bytes `692db83c...`, `gerar-kotlin.mjs` 17.796 bytes `c9aef04c...` e `conferir.mjs` 9.879 bytes `755d7acd...`), e o `ORIGEM.json` registra repositório, branch, commit, caminho, sha256, versão 1.0.8 e data da cópia. Até 23/11/2026 esta linha dizia 1.0.7; a prova daquela versão fica nos itens 12 e 14 a 16 |
+| 11 | Os tokens de desenho são cópia byte a byte da origem 1.1.0 | `design/tokens/rebobina-tokens.json` com 34.081 bytes e sha256 `622f1495f8767b4bf3e6b7bbf6a0fcc0e784d9feca6c9452d6926190cf1ae10c`, igual ao primeiro campo do `rebobina-tokens.sha256` (86 bytes sem newline final, sha256 `fcd97b5bce49394d413ba76239c32f1458e0629b7dd7de5ee134a0d2d522a41e`), copiado do commit `7ed7dcfc392cd77f7e5c2eb7a0ed6562a7edb34c` do `rebobina-servidor`, com o clone limpo naquele commit e `Get-FileHash` nos dois lados; os geradores continuam iguais ao canônico (`gerar.mjs` 15.585 bytes `7e603e91...`, `gerar-kotlin.mjs` 18.694 bytes `3fdb48f0...` e `conferir.mjs` 9.879 bytes `755d7acd...`), e o `ORIGEM.json` registra repositório, branch, commit, caminho, sha256, versão 1.1.0 e data da cópia. A 1.1.0 tem 420 folhas contra 403 da 1.0.8: entraram as 17 chaves de `interface` e mudaram oito chaves de texto de documentação e geração (`meta.versao`, `meta.historico`, `meta.regras`, `geracao.kotlin.convencao`, `geracao.css.naoEmitido`, `geracao.css.motivoNaoEmitido`, `geracao.textos.fonte` e `geracao.textos.regra`), nenhuma de desenho (folhas planas comparadas com `git show fb9eb94^:design/tokens/rebobina-tokens.json` contra o commitado). Até 23/11/2026 esta linha dizia 1.0.8; a prova daquela versão fica nos itens 12 e 14 a 16 |
 | 12 | O Kotlin gerado é reprodutível e está travado | `node design/tokens/gerar-kotlin.mjs` com o pacote padrão do JSON reproduz byte a byte os arquivos de referência do commit `8367859`: `ReboTokensGerado.kt` com 12.467 bytes e sha256 `23ed806352f78ff4889c8ae678cb5dda9990524cc42cf876ebacb84f1595b4e0`, `ReboTextos.kt` com 1.976 bytes e sha256 `f30e599fb0890fb5fa5c598958ad53da4d9fbb4ada86b503c6258d77860ca9c6`; com `--pacote net.dynv6.rebobina.ui.tokens` saem 12.466 B `1ce69352...` e 1.975 B `999e520f...`, com só a linha do pacote diferente. `node scripts/conferir-tokens.mjs` sai 0 com `trava dos tokens: ok, versao 1.0.7`, e renomear o `object ReboTextos` para `ReboTextosQuebrado` derruba a tarefa `:composeApp:conferirTokens` do Gradle apontando a primeira linha diferente (9) |
 | 13 | O IPA do run #7 leva o `commonMain` com os dois gerados | run #7 (id 45107159058), commit `61ddda1cc2671c0ad5195c21f691db8e85c0f4c3`, `success` em 3m36s, artefato `rebobina-ios-ipa-7` com 9.121.993 bytes e digest `sha256:bd5d00744d2af8b3ad1c72db8563a849a23b70044436576aba956df505cffc15`, `Rebobina.ipa` de 9.169.810 bytes e sha256 `ff3f748a43b4b25d54a3a4cd7192c358416968900b839d9a3846d4ce35d54a5e`, binário `Payload/Rebobina.app/Rebobina` de 24.882.120 bytes, Mach-O 64 bits arm64; passos "Compilar Kotlin (iOS arm64)" 12 s e "Xcode archive sem assinatura" 157 s, ambos `success`, e o passo "Prova extra do commonMain no alvo Android" com `ANDROID_COMPILOU=sim` |
 | 14 | A 1.0.7 não mexeu em valor de desenho | comparadas as 397 folhas do JSON anterior com as 397 da 1.0.7: 0 removidas, 0 novas e 4 alteradas, todas de prosa e meta (`meta.versao`, `meta.historico`, `canonico.conferidor.oQueConfere` e `geracao.kotlin.convencao`); os dois `.kt` gerados diferem do commit anterior só nas duas linhas de cabeçalho com a versão e o sha256 do JSON, e com a linha do pacote normalizada o corpo é idêntico ao arquivo de referência do canônico |
@@ -65,21 +65,23 @@ o acervo".
 | 18 | A reimportação da 1.0.8 no iOS foi provada sem gastar runner macOS | decisão do Lead: o iOS ainda não consome token nenhum, então a prova possível sem cota é a trava local e o conferidor cross-repo; `node scripts/conferir-tokens.mjs` sai 0 com `trava dos tokens: ok, versao 1.0.8, sha256 c39b8fe77bfe..., ReboTokensGerado.kt com 12682 bytes e ReboTextos.kt com 1975 bytes iguais ao commitado`; `node design/tokens/gerar-kotlin.mjs --pacote net.dynv6.rebobina.ui.tokens` gera 12.682 B `37f78ecb...` e 1.975 B `2703fe6a...`, idênticos aos arquivos de referência do canônico (12.683 B e 1.976 B, 1 byte mais longos porque `rebobina.android.ui.base.rebo` tem um caractere a mais que `net.dynv6.rebobina.ui.tokens`) depois de normalizar a linha do pacote; `ReboGrade.Celular` e `ReboGrade.Ios` ganharam `LarguraCartao = 140`, `ColunasCanalVertical = 2` e `ColunasCanalHorizontal = 4`, e nenhum valor existente mudou; commit com `[skip ci]`, nenhum `workflow_dispatch` disparado e nenhum minuto de macOS gasto. Depois do push, `node design/tokens/conferir.mjs` imprime `ok rebobina-ios main em dia`, `ok rebobina-webos main em dia` e só `FALHA rebobina-android main ATRASADO (copia 1.0.7, canonico 1.0.8)` com exit 1, que é a divergência do Android, não do iOS |
 | 19 | As cinco telas e o cliente Jellyfin compilam, entram no IPA e o CI roda a trava do desenho | run #10 (id 45177622503), commit `2b99e44da3a7b285dcf36f847ee597fbf4e7510c`, `success` em 4m29s (269 s pelo cronômetro do workflow, 310 s de job de 12:47:28 a 12:52:38 UTC), artefato `rebobina-ios-ipa-10` com 10.586.276 bytes e digest `sha256:6aae99e63a73aa1c77ece88068c156ac69cf8bae3df6ece39b62ca5ed322d4a0`; baixado e aberto: `Rebobina.ipa` de 10.635.214 bytes (10,14 MiB) e sha256 `12c27b48b3119eb2e991b8b6dc5fd6f5f13e7cf075d659b4cd548f83864a529d`, binário `Payload/Rebobina.app/Rebobina` de 29.581.704 bytes (+4.699.584 sobre o run #9), `Info.plist` de 1.487 bytes com `MinimumOSVersion 17.0`, `CFBundleIdentifier net.dynv6.rebobina.ios`, `DTSDKName iphoneos26.5` e o ATS com `NSAllowsArbitraryLoads true`; o log mostra `> Task :composeApp:compileKotlinIosArm64` executado (não `UP-TO-DATE`, não `FROM-CACHE`) e `BUILD SUCCESSFUL`, `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` duas vezes (no passo "Compilar Kotlin" e no archive, porque as tarefas `conferirTokens` e `conferirDesenho` rodam antes de cada `compileKotlin`), e `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` em 12 s, o que prova o mesmo `commonMain` compilando para Android; no binário estão as strings das telas e do cliente em UTF-16 (`Continuar assistindo`, `Adicionados recentemente`, `Nada baixado ainda`, `Fila deste aparelho`, `Digite o nome de um filme`, `Resultados`, `Sinopse`, `Temporada`, `Chave de API`, `Endereço do servidor`, `X-Emby-Token`, `/Users`, `LiveTv/Channels`, `192.168.18.9:8096`), o que prova que `commonMain`, `ui/base`, `ui/telas` e `dados` foram linkados; passos: "Trava dos tokens" 1 s, "Compilar Kotlin (iOS arm64)" 23 s, "Xcode archive sem assinatura" 215 s, "Empacotar IPA" 2 s, "Publicar IPA" 2 s, "Prova extra do commonMain no alvo Android" 13 s, todos `success` |
 | 20 | O conferidor cross-repo passou a fechar verde nos cinco clientes | `node design/tokens/conferir.mjs` dentro deste repositório em 23/11/2026 12:59 UTC, lendo pela API do GitHub: `canonico: design\tokens\rebobina-tokens.json versao 1.0.8, sha256 c39b8fe77bfe...`, e a lista `ok rebobina-tv`, `ok rebobina-desktop`, `ok rebobina-ios main em dia`, `ok rebobina-android main em dia`, `ok rebobina-webos main em dia`, `ok rebobina-webos textos nao conferido (sem copia local do canonico)`, com `todas as copias em dia com o canonico` e exit 0. Nesta rodada o iOS não mudou nada de token: o que mudou foi o Android, que reimportou a 1.0.8 em paralelo e deixou de aparecer como `ATRASADO`; a leitura é do conferidor, não de inspeção minha no repositório do Android |
+| 21 | A 1.1.0 entrou no app, o build compila e o IPA do run #11 contém o texto gerado | commit `fb9eb94` com 17 arquivos e a reimportação dos tokens; run #11 (id 45206725111) `success` em 23/11/2026, job de 275 s (4m35s) e run de 282 s (4m42s), cerca de 45 minutos cobrados, passo "Trava dos tokens" com `trava dos tokens: ok, versao 1.1.0, sha256 622f1495f876..., ReboTokensGerado.kt com 12682 bytes e ReboTextos.kt com 2996 bytes iguais ao commitado` e passo "Compilar Kotlin" com `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas`; artefato `rebobina-ios-ipa-11` com 10.583.573 bytes (zip, sha256 `1de85628ed19e5653631cfa59e5fcf519e5f1886e80212944dd8285cdef783ca`), `Rebobina.ipa` de 10.634.122 bytes e sha256 `8d08d080eda6e2acd372ef2b72ae4eba07575f33a2b4dc9068155e5503c0634c`, binário `Rebobina` de 29.581.904 bytes com a string `Séries` em UTF-16LE no deslocamento 28749106, e o passo Android com `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` |
 
 ## O que NÃO está provado
 
 - **Desenhar de verdade na tela.** A trava `scripts/conferir-desenho.mjs` é textual: ela
   reprova `Color(0x...)`, `Color.<nome>`, hexadecimal e `.dp`/`.sp` literal em `ui/telas`,
-  exige `ReboRotulos` e componente de estado, e passa nas seis telas. O run #10 mostrou que ela
-  também roda dentro do Gradle do CI (`> Task :composeApp:conferirDesenho` e
+  exige `ReboRotulos` e componente de estado, e passa nas seis telas. Os runs #10 e #11
+  mostraram que ela também roda dentro do Gradle do CI (`> Task :composeApp:conferirDesenho` e
   `desenho: ok, 6 telas`), mas continua sendo texto. Ela não prova que o desenho ficou bonito,
   nem que o pixel bate com o Android: isso só uma captura de tela prova, e não há Mac nem
   iPhone aqui.
-- **Executar o app e ver a tela.** Compilar, linkar e empacotar está provado pelo run #10; o
-  que não foi provado é o app abrindo: nenhuma tela desta rodada foi desenhada em aparelho,
-  nenhum toque, rolagem ou troca de aba foi exercitado, e o `rebobina-ios-ipa-10` nunca foi
-  instalado. O binário crescer 4,5 MiB e conter as strings das telas prova que o código está
-  dentro dele, não que ele funciona.
+- **Executar o app e ver a tela.** Compilar, linkar e empacotar está provado pelos runs #10 e
+  #11; o que não foi provado é o app abrindo: nenhuma tela desta rodada foi desenhada em
+  aparelho, nenhum toque, rolagem ou troca de aba foi exercitado, e os artefatos
+  `rebobina-ios-ipa-10` e `rebobina-ios-ipa-11` nunca foram instalados. O binário crescer
+  4,5 MiB e conter as strings das telas prova que o código está dentro dele, não que ele
+  funciona.
 - **Testes de `commonTest`.** Os 7 testes de `ReboAdaptativoTest` foram escritos e nunca
   executados: o CI roda só `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`,
   e esta máquina não tem JDK nem Gradle para rodar `iosSimulatorArm64Test`.
@@ -110,11 +112,16 @@ o acervo".
 - **Player e download.** `TelaFicha` mostra `ReboRotulos.PENDENTE_REPRODUTOR` no lugar de
   reproduzir, e `TelaDownloads` é uma fila vazia declarada. Nenhum arquivo é baixado, nem
   tocado.
-- **Rótulos e formato fora do token.** `ui/base/ReboRotulos.kt` e o `FormatoDeTexto` de
-  `dados/Acervo.kt` são texto escrito à mão. O JSON 1.0.8 tem 488 folhas e só publica texto de
-  `estado.*` e `selo.variantes.*`; rótulo de aba, campo, seção, unidade de duração, temporada,
-  episódio e tipo de mídia não existem lá. Isso é lacuna declarada do token, não escolha de
-  desenho.
+- **Rótulos e formato fora do token.** Depois da reimportação da 1.1.0, `ReboRotulos` caiu de
+  59 para 43 constantes: 16 saíram e as 20 leituras correspondentes em 9 arquivos passaram a
+  ler `ReboTextos.Interface.*`. Continuam escritos à mão o que `ReboTextos` não cobre:
+  `FormatoDeTexto` de `dados/Acervo.kt` (duração, temporada, episódio, tipo de mídia e
+  separador) e `SEM_SINOPSE` em `ui/base/ReboRotulos.kt`, porque o valor local
+  (`Sem sinopse cadastrada no acervo.`) difere do canônico (`Sem sinopse cadastrada.`) e
+  trocar a frase é decisão de produto. O JSON 1.1.0 tem 420 folhas e não publica frase de
+  tela fora de `estado.*`, `selo.variantes.*.texto` e `interface.*`: nas outras chaves com
+  texto o conteúdo é documentação da folha ou valor (`cor` em hexadecimal, `plataforma` em
+  unidade e escala). Isso é lacuna declarada do token, não escolha de desenho.
 - **Tema claro.** `ReboColorClaro` está no gerado e não é usado: esta rodada é escura só.
 - **Ícone do app.** Sem `Assets.xcassets` nesta rodada; o app usa o ícone padrão.
 
@@ -132,10 +139,11 @@ o acervo".
 | 8 | 45112444059 | `c6252aa` | success | nenhum | 241 s (4m01s) | 40 min |
 | 9 | 45166068336 | `4e4cbe2` | success | nenhum | 272 s (4m32s) | 45 min |
 | 10 | 45177622503 | `2b99e44` | success | nenhum | 269 s (4m29s) | 44 min |
+| 11 | 45206725111 | `fb9eb94` | success | nenhum | 275 s (4m35s) | 45 min |
 
-Total gasto até aqui: a soma real dos dez jobs é 2.326 s = **38 minutos e 46 segundos de
-runner macOS**, cobrados como **387,7 minutos** dos 2.000 do mês. Sobram 1.612,3 minutos
-cobrados, que dão 161,23 minutos de runner macOS, cerca de 46 builds de 3m30s.
+Total gasto até aqui: a soma real dos onze jobs é 2.601 s = **43 minutos e 21 segundos de
+runner macOS**, cobrados como **433,5 minutos** dos 2.000 do mês. Sobram 1.566,5 minutos
+cobrados, que dão 156,65 minutos de runner macOS, cerca de 44 builds de 3m30s.
 
 Cuidado com a leitura: os minutos da coluna acima são **minutos cobrados** (duração do job
 vezes 10, truncada para baixo em cada run, o que dá 383 no total) e não minutos de runner
@@ -233,6 +241,33 @@ O único aviso de Kotlin no log é anterior a esta rodada: `composeApp/build.gra
 usa `androidLibrary`, que está marcado como deprecado em favor de `android`. Não mexi nisso
 nesta rodada para não trocar API de build e de desenho na mesma rodada; fica declarado.
 
+### Run 11: a 1.1.0 entra no app e o texto de interface passa a ser lido do gerado
+
+O run #11 (id 45206725111) foi o único disparo da rodada, sobre o commit `fb9eb94`, e saiu
+`success` em 4m42s de run e 4m35s de job. O passo "Trava dos tokens" imprimiu
+`trava dos tokens: ok, versao 1.1.0, sha256 622f1495f876..., ReboTokensGerado.kt com 12682
+bytes e ReboTextos.kt com 2996 bytes iguais ao commitado`; o passo "Compilar Kotlin" repetiu a
+linha e acrescentou `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas`; o
+archive levou 200 s.
+
+Números do artefato, lidos no arquivo baixado e não no resumo do CI:
+
+```
+artefato rebobina-ios-ipa-11   10.583.573 bytes  sha256:1de85628ed19e5653631cfa59e5fcf519e5f1886e80212944dd8285cdef783ca
+Rebobina.ipa                   10.634.122 bytes  sha256 8d08d080eda6e2acd372ef2b72ae4eba07575f33a2b4dc9068155e5503c0634c
+Payload/Rebobina.app/Rebobina  29.581.904 bytes  (+200 sobre o run #10)
+```
+
+A presença do texto gerado no binário foi conferida por busca de bytes no executável: `Séries`
+aparece em UTF-16LE no deslocamento 28749106, e `Ainda carregando`, `Tentar de novo` e
+`Sem conexão` também em UTF-16LE; `Ajustes`, `Downloads` e `Assistir` aparecem em UTF-8 e em
+UTF-16LE. A busca foi por igualdade exata da string, não por leitura de tabela de símbolos.
+
+O commit `fb9eb94` reimportou os tokens, apontou 20 leituras para `ReboTextos.Interface.*` em
+9 arquivos, apagou 16 constantes de `ReboRotulos` (59 para 43) e deixou `SEM_SINOPSE` local,
+com a divergência de valor declarada no KDoc. O passo Android saiu `success` em 10 s e
+imprimiu `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)`.
+
 ## Suposições visíveis
 
 1. Assumi que o alvo mínimo pedido é exatamente 17.0, e não manter 16.0, porque a decisão do
@@ -291,10 +326,29 @@ nesta rodada para não trocar API de build e de desenho na mesma rodada; fica de
 18. Assumi que o passo Android do CI prova o `commonMain` nos dois alvos: ele rodou
     `:composeApp:compileAndroidMain` com `ANDROID_COMPILOU=sim`, e não executou nada em
     Android. O alvo Android segue sem teste de execução.
+19. Assumi que o objeto gerado de texto se chama `ReboTextos`, e não `ReboGeradoTextos`: o
+    `gerar-kotlin.mjs` emite `object ReboTextos` e o próprio JSON 1.1.0 descreve
+    `interface.<assunto>.<campo> -> ReboTextos.Interface.<Assunto>.<Campo>`. O briefing desta
+    rodada dizia `ReboGeradoTextos`; segui o gerador, que é a fonte.
+20. Assumi que apagar as 16 constantes locais que viraram canônicas era o pedido, e mantive
+    `ReboRotulos.SEM_SINOPSE` local porque o valor diverge do canônico, sem tocar no texto que
+    `TelaFicha.kt` mostra. Se o produto quiser a frase curta da 1.1.0, é uma troca de uma
+    linha mais o KDoc.
+21. Assumi que o iOS não precisa de cópia vendorizada do `rebobina-textos.json`, apesar do
+    passo da especificação que mandava copiá-lo: o cliente iOS consome só o Kotlin gerado, o
+    `LEIA.md` do canônico restringe essa cópia a cliente CSS, e o `rebobina-android`, que é
+    Kotlin como o iOS, também não vendoriza.
+22. Assumi que `player.pausado` não pede constante local: a chave entrou no gerado como
+    `ReboTextos.Interface.Player.Pausado` e nenhuma tela desta rodada mostra rótulo de
+    pausado. Por isso o briefing contava 17 constantes locais para 17 chaves e a conta real
+    foi 16 apagadas, 1 mantida e 1 chave sem constante de origem.
 
 ## Como reproduzir a conferência
 
 ```
+gh run view 45206725111 -R VRamses/rebobina-ios --json conclusion,jobs
+gh api repos/VRamses/rebobina-ios/actions/runs/45206725111/artifacts
+gh run download 45206725111 -R VRamses/rebobina-ios -n rebobina-ios-ipa-11
 gh run view 45177622503 -R VRamses/rebobina-ios --json conclusion,jobs
 gh api repos/VRamses/rebobina-ios/actions/runs/45177622503/artifacts
 gh run download 45177622503 -R VRamses/rebobina-ios -n rebobina-ios-ipa-10
