@@ -33,12 +33,14 @@ dentro dele diz `MinimumOSVersion 17.0`. O que ainda **não** foi provado é abr
 iPhone, porque esta rodada não tem iPhone nem Mac para testar.
 Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
 
-O IPA desta rodada é o do run #10, disparado depois do commit que trouxe as cinco telas, e é
-o primeiro com as telas e com o cliente Jellyfin dentro do binário. Os números dele
-(tamanho, sha256, duração do job e minutos cobrados) ficam no item 19 da tabela
-[docs/ESTADO.md](docs/ESTADO.md), porque só existem depois do build. Até o build passar, o
-que está provado das telas é a trava local, não a compilação: esta máquina não tem JDK nem
-Gradle.
+O IPA desta rodada é o do run #10 (id 45177622503, 23/11/2026), o primeiro com as telas e o
+cliente Jellyfin dentro do binário: artefato `rebobina-ios-ipa-10` com 10.586.276 bytes (zip),
+`Rebobina.ipa` de 10.635.214 bytes (10,14 MiB), sha256
+`12c27b48b3119eb2e991b8b6dc5fd6f5f13e7cf075d659b4cd548f83864a529d`, binário `Rebobina` de
+29.581.704 bytes, job verde em 4m29s, cerca de 44,8 minutos cobrados. O `Info.plist` de dentro
+dele mantém `MinimumOSVersion 17.0`, e o passo extra do CI provou que o mesmo `commonMain`
+compila também para Android (`ANDROID_COMPILOU=sim`). O que ele **não** prova é a tela
+desenhada nem a chamada ao Jellyfin em execução: só um iPhone abrindo o app prova isso.
 
 O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 no run #5 e 9.121.985 no
 run #6. A explicação provável do salto do run #4 para o #5 é a entrada do
@@ -53,6 +55,14 @@ desenho muda, e confirma a leitura do salto. O run #9, que baixou o mínimo para
 tocou em desenho, manteve o binário em 24.882.120 bytes e deixou o IPA 292 bytes maior
 (9.170.102): a diferença é do zip e dos poucos bytes do cabeçalho Mach-O que declaram o
 `minos`, não de código.
+
+O run #10, primeiro com as telas, o cliente Ktor e os DTOs, levou o binário de 24.882.120 para
+29.581.704 bytes (+4.699.584, uns 4,5 MiB) e o IPA de 9.170.102 para 10.635.214 (+1.465.112).
+A leitura é medida, não contagem de símbolo: o salto acompanha a entrada de
+`ktor-client-core`, `ktor-client-darwin`, `ktor-client-content-negotiation`,
+`kotlinx-serialization-json`, `kotlinx-coroutines-core`, do cache de imagem e das seis telas
+com os componentes de `ui/base`, que puxam `TextField`, `LazyColumn` e `ScrollState` do
+Compose. Nenhum valor de token mudou nesta rodada, que é o que o `sha256` da trava confirma.
 
 **O alvo mínimo do app é iOS 17.** O binário linka contra o SDK do iOS 26, mas a classe
 `UIViewLayoutRegion` sai como weak import, então o dyld de um iPhone com iOS 17 a 25 não
@@ -150,7 +160,7 @@ mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de 
 runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
 é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
-Conta feita, com os nove builds que já rodaram:
+Conta feita, com os dez builds que já rodaram:
 
 ```
 orçamento: 2.000 minutos cobrados por mês
@@ -167,15 +177,16 @@ run 6 (verde, 3m47s)   227 s
 run 7 (verde, 3m36s)   216 s
 run 8 (verde, 4m01s)   241 s
 run 9 (verde, 4m32s)   272 s
-soma:                  2.057 s = 34 minutos e 17 segundos de runner macOS
+run 10 (verde, 4m29s)  269 s
+soma:                  2.326 s = 38 minutos e 46 segundos de runner macOS
 
-cobrado até agora: 34,28 x 10 = 342,8 minutos dos 2.000
-sobrou: 2.000 - 342,8 = 1.657,2 minutos cobrados
-1.657,2 / 10 = 165,72 minutos de runner macOS disponíveis
-165,72 / 3,5 minutos por build = cerca de 47 builds de 3m30s neste mês
+cobrado até agora: 38,77 x 10 = 387,7 minutos dos 2.000
+sobrou: 2.000 - 387,7 = 1.612,3 minutos cobrados
+1.612,3 / 10 = 161,23 minutos de runner macOS disponíveis
+161,23 / 3,5 minutos por build = cerca de 46 builds de 3m30s neste mês
 ```
 
-Ou seja: **sobram cerca de 165 minutos de runner macOS**, que dão cerca de 47 builds de 3m30s.
+Ou seja: **sobram cerca de 161 minutos de runner macOS**, que dão cerca de 46 builds de 3m30s.
 A conta acima trunca a duração de cada job ao minuto, então o número é o piso do gasto: o
 GitHub arredonda cada job para cima ao faturar, e o total real pode ficar alguns minutos
 acima. Não reconferi essa regra na documentação do GitHub nesta rodada.
@@ -353,7 +364,13 @@ Limites declarados desta rodada, sem invenção de dado:
   aqui e não vindos do JSON: o token de tamanho de arte não existe;
 - o ATS do `Info.plist` libera `NSAllowsArbitraryLoads` para o Jellyfin em HTTP na rede
   local. É risco aceito de sideload, não recomendação: o IPA é sem assinatura e a chave do
-  servidor fica no `NSUserDefaults` do aparelho, nunca no repositório.
+  servidor fica no `NSUserDefaults` do aparelho, nunca no repositório;
+- os 7 testes de `ReboAdaptativoTest` existem e nunca rodaram: o CI compila
+  `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`, não a suíte, e esta
+  máquina não tem JDK nem Gradle para rodar `iosSimulatorArm64Test`;
+- nenhuma tela foi vista em aparelho nesta rodada: o IPA do run #10 contém as strings das
+  telas e do cliente, o que prova que o código está no binário, não que a tela desenha ou que
+  o servidor responde.
 
 A trava do desenho roda local e no CI, antes do build:
 
@@ -365,9 +382,11 @@ Ela reprova `Color(0x...)`, `Color.<nome>`, hexadecimal e `.dp`/`.sp` literal em
 `ui/telas`, exige `ReboRotulos` e um componente de estado em cada tela (Ajustes de fora,
 porque o estado dela é o resultado de "Testar conexão") e, no fim, chama a trava dos tokens.
 Saída desta rodada: `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` e
-`trava dos tokens: ok, versao 1.0.8`. A trava é textual: ela não prova pixel nem beleza, e
-a comparação com o Android só valeria com captura de tela dos dois lados, que esta rodada
-não tem.
+`trava dos tokens: ok, versao 1.0.8`. No CI ela é dependência das tarefas `compileKotlin*` e
+`check`, então o log do run #10 mostra `> Task :composeApp:conferirDesenho` e a mesma linha
+duas vezes, no passo "Compilar Kotlin (iOS arm64)" e dentro do archive. A trava é textual:
+ela não prova pixel nem beleza, e a comparação com o Android só valeria com captura de tela
+dos dois lados, que esta rodada não tem.
 
 ## Trocar o endereço do servidor
 

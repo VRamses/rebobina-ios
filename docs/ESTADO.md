@@ -35,9 +35,11 @@ Resumo: o build do IPA funciona no GitHub Actions e o IPA está publicado como r
 estão no repositório, com o JSON copiado byte a byte em `design/tokens` e o Kotlin gerado em
 `commonMain`, travados no build e no CI. A rodada de 23/11/2026 apagou o `TemaPlaceholder.kt`:
 as cinco telas do Android mais Ajustes estão escritas só com os tokens, com as duas faixas de
-layout e um cliente Ktor que lê o Jellyfin de verdade, e a trava local do desenho passa. O que
-falta é o build desta rodada (run #10) compilar, e depois abrir o app num iPhone de verdade,
-que não dá para testar desta máquina.
+layout e um cliente Ktor que lê o Jellyfin de verdade. O run #10 compilou tudo, rodou as duas
+travas dentro do CI e publicou o IPA de 10.635.214 bytes com as strings das telas e do cliente
+dentro do binário. O que falta agora não é build: é abrir o app num iPhone de verdade, que
+não dá para testar desta máquina, e é isso que separa "compila e entra no IPA" de "desenha e lê
+o acervo".
 
 ## O que está provado, com evidência
 
@@ -61,21 +63,30 @@ que não dá para testar desta máquina.
 | 16 | O conferidor do canônico roda dentro de um cliente Kotlin sem rebobina-textos.json | `node design/tokens/conferir.mjs` dentro deste repositório imprime `aviso: sem rebobina-textos.json ao lado deste script; a conferencia de texto remoto fica de fora nesta rodada`, segue com `canonico: design\tokens\rebobina-tokens.json versao 1.0.7, sha256 93a648069591...` e lista `ok rebobina-ios main em dia`, `ok rebobina-android main em dia` e `ok rebobina-webos main em dia` com exit 0 depois do push; antes do push os três clientes apareciam como `ATRASADO`, com a versão antiga da cópia contra o canônico 1.0.7, e exit 1, que era o esperado. Com o canônico na 1.0.8, o iOS voltou a `ATRASADO` até a reimportação do item 18, como esperado |
 | 17 | O alvo mínimo do app é iOS 17.0, provado pelo IPA e não pelo pbxproj | decisão do Ramses em 23/11/2026; `IPHONEOS_DEPLOYMENT_TARGET = 17.0` nos quatro blocos do `iosApp/iosApp.xcodeproj/project.pbxproj` (era 16.0, não 26.0), commit `4e4cbe2`; run #9 (id 45166068336), `success` em 4m32s (272 s), artefato `rebobina-ios-ipa-9` com 9.121.686 bytes e digest `sha256:82fc0c20bd4ad157b0db7780c25a4b91b4bdeef82315d2968079d24f314b07f5`; baixado e aberto: `Payload/Rebobina.app/Info.plist` com `MinimumOSVersion 17.0`, lido com `plistlib` no arquivo do artefato, e o log do passo "Empacotar IPA" mostra a mesma linha; `LC_BUILD_VERSION` do binário com `minos 17.0` e `sdk 26.5`, e `_OBJC_CLASS_$_UIViewLayoutRegion` com `weak_import = 1` na tabela de chained fixups; `Rebobina.ipa` de 9.170.102 bytes e sha256 `bda93e37ce16644688dc7339eddd4e7a88fbbc5227c1b73082080a2dfc35e7fb`, binário de 24.882.120 bytes e sha256 `42510f37c66773fca443374e209b8e6777d7b4a3e53751b605a6d606d060902f`; passos "Trava dos tokens" 1 s, "Compilar Kotlin (iOS arm64)" 10 s e "Xcode archive sem assinatura" 204 s, todos `success` |
 | 18 | A reimportação da 1.0.8 no iOS foi provada sem gastar runner macOS | decisão do Lead: o iOS ainda não consome token nenhum, então a prova possível sem cota é a trava local e o conferidor cross-repo; `node scripts/conferir-tokens.mjs` sai 0 com `trava dos tokens: ok, versao 1.0.8, sha256 c39b8fe77bfe..., ReboTokensGerado.kt com 12682 bytes e ReboTextos.kt com 1975 bytes iguais ao commitado`; `node design/tokens/gerar-kotlin.mjs --pacote net.dynv6.rebobina.ui.tokens` gera 12.682 B `37f78ecb...` e 1.975 B `2703fe6a...`, idênticos aos arquivos de referência do canônico (12.683 B e 1.976 B, 1 byte mais longos porque `rebobina.android.ui.base.rebo` tem um caractere a mais que `net.dynv6.rebobina.ui.tokens`) depois de normalizar a linha do pacote; `ReboGrade.Celular` e `ReboGrade.Ios` ganharam `LarguraCartao = 140`, `ColunasCanalVertical = 2` e `ColunasCanalHorizontal = 4`, e nenhum valor existente mudou; commit com `[skip ci]`, nenhum `workflow_dispatch` disparado e nenhum minuto de macOS gasto. Depois do push, `node design/tokens/conferir.mjs` imprime `ok rebobina-ios main em dia`, `ok rebobina-webos main em dia` e só `FALHA rebobina-android main ATRASADO (copia 1.0.7, canonico 1.0.8)` com exit 1, que é a divergência do Android, não do iOS |
+| 19 | As cinco telas e o cliente Jellyfin compilam, entram no IPA e o CI roda a trava do desenho | run #10 (id 45177622503), commit `2b99e44da3a7b285dcf36f847ee597fbf4e7510c`, `success` em 4m29s (269 s pelo cronômetro do workflow, 310 s de job de 12:47:28 a 12:52:38 UTC), artefato `rebobina-ios-ipa-10` com 10.586.276 bytes e digest `sha256:6aae99e63a73aa1c77ece88068c156ac69cf8bae3df6ece39b62ca5ed322d4a0`; baixado e aberto: `Rebobina.ipa` de 10.635.214 bytes (10,14 MiB) e sha256 `12c27b48b3119eb2e991b8b6dc5fd6f5f13e7cf075d659b4cd548f83864a529d`, binário `Payload/Rebobina.app/Rebobina` de 29.581.704 bytes (+4.699.584 sobre o run #9), `Info.plist` de 1.487 bytes com `MinimumOSVersion 17.0`, `CFBundleIdentifier net.dynv6.rebobina.ios`, `DTSDKName iphoneos26.5` e o ATS com `NSAllowsArbitraryLoads true`; o log mostra `> Task :composeApp:compileKotlinIosArm64` executado (não `UP-TO-DATE`, não `FROM-CACHE`) e `BUILD SUCCESSFUL`, `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` duas vezes (no passo "Compilar Kotlin" e no archive, porque as tarefas `conferirTokens` e `conferirDesenho` rodam antes de cada `compileKotlin`), e `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` em 12 s, o que prova o mesmo `commonMain` compilando para Android; no binário estão as strings das telas e do cliente em UTF-16 (`Continuar assistindo`, `Adicionados recentemente`, `Nada baixado ainda`, `Fila deste aparelho`, `Digite o nome de um filme`, `Resultados`, `Sinopse`, `Temporada`, `Chave de API`, `Endereço do servidor`, `X-Emby-Token`, `/Users`, `LiveTv/Channels`, `192.168.18.9:8096`), o que prova que `commonMain`, `ui/base`, `ui/telas` e `dados` foram linkados; passos: "Trava dos tokens" 1 s, "Compilar Kotlin (iOS arm64)" 23 s, "Xcode archive sem assinatura" 215 s, "Empacotar IPA" 2 s, "Publicar IPA" 2 s, "Prova extra do commonMain no alvo Android" 13 s, todos `success` |
 
 ## O que NÃO está provado
 
-- **Compilar esta rodada no CI.** No momento em que este documento foi escrito, as cinco
-  telas, a camada de desenho e o cliente Ktor ainda não tinham passado por compilação: esta
-  máquina não tem JDK nem Gradle, então o `compileKotlinIosArm64` do run #10 é a primeira
-  prova. Se ele falhar, o que cai é hipótese de API, não o desenho provado pela trava.
 - **Desenhar de verdade na tela.** A trava `scripts/conferir-desenho.mjs` é textual: ela
   reprova `Color(0x...)`, `Color.<nome>`, hexadecimal e `.dp`/`.sp` literal em `ui/telas`,
-  exige `ReboRotulos` e componente de estado, e passa nas seis telas. Ela não prova que o
-  desenho ficou bonito, nem que o pixel bate com o Android: isso só uma captura de tela prova,
-  e não há Mac nem iPhone aqui.
-- **Chamadas de rede reais.** O cliente Ktor foi escrito e nunca executado: nenhuma
-  requisição ao `http://192.168.18.9:8096` saiu desta máquina, nem `/Users`, nem `/Items`,
-  nem `/LiveTv/Channels`. O ATS do `Info.plist` libera HTTP local e não foi exercitado.
+  exige `ReboRotulos` e componente de estado, e passa nas seis telas. O run #10 mostrou que ela
+  também roda dentro do Gradle do CI (`> Task :composeApp:conferirDesenho` e
+  `desenho: ok, 6 telas`), mas continua sendo texto. Ela não prova que o desenho ficou bonito,
+  nem que o pixel bate com o Android: isso só uma captura de tela prova, e não há Mac nem
+  iPhone aqui.
+- **Executar o app e ver a tela.** Compilar, linkar e empacotar está provado pelo run #10; o
+  que não foi provado é o app abrindo: nenhuma tela desta rodada foi desenhada em aparelho,
+  nenhum toque, rolagem ou troca de aba foi exercitado, e o `rebobina-ios-ipa-10` nunca foi
+  instalado. O binário crescer 4,5 MiB e conter as strings das telas prova que o código está
+  dentro dele, não que ele funciona.
+- **Testes de `commonTest`.** Os 7 testes de `ReboAdaptativoTest` foram escritos e nunca
+  executados: o CI roda só `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`,
+  e esta máquina não tem JDK nem Gradle para rodar `iosSimulatorArm64Test`.
+- **Chamadas de rede reais.** O cliente Ktor foi escrito, compilado e linkado, e nunca
+  executado: nenhuma requisição ao `http://192.168.18.9:8096` saiu desta máquina, nem `/Users`,
+  nem `/Items`, nem `/LiveTv/Channels`. As strings `X-Emby-Token`, `/Users` e
+  `LiveTv/Channels` estão no binário, o que prova que o caminho foi linkado, não que o servidor
+  responde. O ATS do `Info.plist` libera HTTP local e não foi exercitado.
 - **Decodificar imagem remota.** `Imagens.obter` usa `decodeToImageBitmap` de
   `ui-graphics`; a existência da função no klib do Compose 1.11.1 foi conferida, mas nenhum
   byte de JPEG foi decodificado nesta rodada. Se falhar em execução, o cartão fica com o
@@ -119,14 +130,15 @@ que não dá para testar desta máquina.
 | 7 | 45107159058 | `61ddda1` | success | nenhum | 216 s (3m36s) | 36 min |
 | 8 | 45112444059 | `c6252aa` | success | nenhum | 241 s (4m01s) | 40 min |
 | 9 | 45166068336 | `4e4cbe2` | success | nenhum | 272 s (4m32s) | 45 min |
+| 10 | 45177622503 | `2b99e44` | success | nenhum | 269 s (4m29s) | 44 min |
 
-Total gasto até aqui: a soma real dos nove jobs é 2.057 s = **34 minutos e 17 segundos de
-runner macOS**, cobrados como **342,8 minutos** dos 2.000 do mês. Sobram 1.657,2 minutos
-cobrados, que dão 165,72 minutos de runner macOS, cerca de 47 builds de 3m30s.
+Total gasto até aqui: a soma real dos dez jobs é 2.326 s = **38 minutos e 46 segundos de
+runner macOS**, cobrados como **387,7 minutos** dos 2.000 do mês. Sobram 1.612,3 minutos
+cobrados, que dão 161,23 minutos de runner macOS, cerca de 46 builds de 3m30s.
 
 Cuidado com a leitura: os minutos da coluna acima são **minutos cobrados** (duração do job
-vezes 10, truncada para baixo em cada run, o que dá 339 no total) e não minutos de runner
-macOS. A soma dos resumos de run fica alguns minutos abaixo dos 342,8 cobrados de verdade,
+vezes 10, truncada para baixo em cada run, o que dá 383 no total) e não minutos de runner
+macOS. A soma dos resumos de run fica alguns minutos abaixo dos 387,7 cobrados de verdade,
 porque cada resumo trunca o próprio número. O eixo da conta está no `README.md`: 2.000
 dividido pelo fator 10 dá 200 minutos de runner macOS no mês.
 
@@ -171,6 +183,54 @@ blocos do `project.pbxproj`. O Compose Multiplatform 1.11.1 continua: o que exig
 versão era a hipótese de que o símbolo do iOS 26 fosse obrigatório em tempo de execução, e o
 weak import do IPA derrubou essa hipótese. Trocar o Compose só volta à mesa se um aparelho com
 iOS 17 falhar citando a classe.
+
+### Run 10: as cinco telas compilam, e o IPA cresce 4,5 MiB
+
+O run #10 (id 45177622503) foi o único disparo da rodada, em 23/11/2026, sobre o commit
+`2b99e44`. Passou inteiro, com os passos medidos pelo `gh run view --json jobs`:
+
+```
+Trava dos tokens (sha256, regeneracao e diff)   1 s    ok, versao 1.0.8
+Compilar Kotlin (iOS arm64)                    23 s    > Task :composeApp:compileKotlinIosArm64
+Xcode archive sem assinatura                  215 s    Xcode 26.6, SDK iphoneos26.5
+Empacotar IPA                                   2 s    plutil e lipo dentro do passo
+Publicar IPA                                    2 s    artefato rebobina-ios-ipa-10
+Prova extra do commonMain no alvo Android      13 s    ANDROID_COMPILOU=sim
+```
+
+O passo "Compilar Kotlin" não foi `UP-TO-DATE` nem `FROM-CACHE`: o log mostra a tarefa
+executada, e dentro dela as duas travas do projeto rodaram de novo (`conferirTokens` e
+`conferirDesenho`), com `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas`. A
+tarefa de 23 s é só a compilação do klib: o link do framework acontece dentro do archive, e é
+por isso que esse passo leva 215 s.
+
+Números do artefato, lidos no arquivo baixado e não no resumo do CI:
+
+```
+artefato rebobina-ios-ipa-10   10.586.276 bytes  sha256:6aae99e63a73aa1c77ece88068c156ac69cf8bae3df6ece39b62ca5ed322d4a0
+Rebobina.ipa                   10.635.214 bytes  sha256 12c27b48b3119eb2e991b8b6dc5fd6f5f13e7cf075d659b4cd548f83864a529d
+Payload/Rebobina.app/Rebobina  29.581.704 bytes  (+4.699.584 sobre o run #9)
+Info.plist                          1.487 bytes  MinimumOSVersion 17.0, DTSDKName iphoneos26.5
+```
+
+A prova de que o código novo está dentro do binário não é o tamanho: é a presença das strings
+em UTF-16 no executável, conferidas com `zipfile` e `decode("utf-16-le")` no arquivo do
+artefato. Aparecem `Continuar assistindo`, `Adicionados recentemente`, `Nada baixado ainda`,
+`Fila deste aparelho`, `Digite o nome de um filme`, `Resultados`, `Voltar ao catálogo`,
+`Sinopse`, `Temporada`, `Chave de API`, `Endereço do servidor`, `X-Emby-Token`, `/Users`,
+`LiveTv/Channels` e `192.168.18.9:8096`; a string `AO VIVO` vem do gerado e também está lá.
+Isso prova que `commonMain`, `ui/base`, `ui/telas`, `dados` e o gerado de texto foram
+linkados. Não prova que qualquer uma dessas telas desenha ou que o servidor responde: isso é
+execução, e não houve execução.
+
+O passo Android, que é `continue-on-error: true`, saiu `success` em 12 s de Gradle e imprimiu
+`ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)`: o mesmo `commonMain` compila
+para os dois alvos, então a camada de desenho e o cliente não têm `expect`/`actual` quebrado.
+Esse passo não roda nada no Android, só compila.
+
+O único aviso de Kotlin no log é anterior a esta rodada: `composeApp/build.gradle.kts:20:5`
+usa `androidLibrary`, que está marcado como deprecado em favor de `android`. Não mexi nisso
+nesta rodada para não trocar API de build e de desenho na mesma rodada; fica declarado.
 
 ## Suposições visíveis
 
@@ -220,10 +280,23 @@ iOS 17 falhar citando a classe.
 16. Assumi que a igualdade com o Android é de estrutura, não de pixel: os dois lados têm a
     mesma faixa (600/480), as mesmas colunas e os mesmos tokens, mas nenhum dos dois foi
     capturado em tela nesta rodada.
+17. (Resolvida pelo run #10.) As suposições 9, 11 e 12 eram apostas de versão e de API sem
+    compilar, e o run #10 as fechou: Ktor 3.3.3, coroutines 1.10.2 e serialization 1.9.0
+    compilaram e linkaram no Kotlin 2.4.10; `safeDrawingPadding()`,
+    `PasswordVisualTransformation`, `HttpClientConfig<*>` como extensão,
+    `resposta.body<ByteArray>()` e `Aba.entries` compilaram. Continuam abertas a suposição 10
+    (decode de imagem: compilou, não foi executado) e a 13 (primeiro usuário de `/Users`:
+    compilou, não foi executado contra servidor).
+18. Assumi que o passo Android do CI prova o `commonMain` nos dois alvos: ele rodou
+    `:composeApp:compileAndroidMain` com `ANDROID_COMPILOU=sim`, e não executou nada em
+    Android. O alvo Android segue sem teste de execução.
 
 ## Como reproduzir a conferência
 
 ```
+gh run view 45177622503 -R VRamses/rebobina-ios --json conclusion,jobs
+gh api repos/VRamses/rebobina-ios/actions/runs/45177622503/artifacts
+gh run download 45177622503 -R VRamses/rebobina-ios -n rebobina-ios-ipa-10
 gh run view 45166068336 -R VRamses/rebobina-ios --json conclusion,jobs
 gh api repos/VRamses/rebobina-ios/actions/runs/45166068336/artifacts
 gh run download 45166068336 -R VRamses/rebobina-ios -n rebobina-ios-ipa-9
@@ -235,10 +308,12 @@ gh run download 45094376845 -R VRamses/rebobina-ios -n rebobina-ios-ipa-3
 gh release view v0.1.0 -R VRamses/rebobina-ios --json assets
 ```
 
-E, na pasta do repositório, a trava dos tokens e a reprodução do gerado:
+E, na pasta do repositório, a trava dos tokens, a trava do desenho e a reprodução do gerado:
 
 ```
 node scripts/conferir-tokens.mjs
+node scripts/conferir-desenho.mjs
 ./gradlew :composeApp:conferirTokens
-node design/tokens/gerar-kotlin.mjs   # com o pacote padrão, tem de sair igual ao 8367859
+./gradlew :composeApp:conferirDesenho
+node design/tokens/gerar-kotlin.mjs   # com o pacote padrao, tem de sair igual ao arquivo de referencia do canonico
 ```
