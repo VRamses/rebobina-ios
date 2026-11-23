@@ -1,10 +1,10 @@
 {
   "repositorio": "rebobina-servidor",
   "branch": "main",
-  "commit": "8604b02c095e2ea7dbdfeb165f85f9b2a9f110bb",
+  "commit": "836785906686a558aa7c5ac4a77f2dcd0e0f6974",
   "caminho": "design/tokens/rebobina-tokens.json",
-  "sha256": "005401d0bf9a13f81687837c547317ca8083a5feaffb3c0e519fde222fa76c7a",
-  "versao": "1.0.6",
+  "sha256": "93a64806959169c3673570058cfeac2b54cef205a64da88d4f48e78a1aabc048",
+  "versao": "1.0.7",
   "dataDaCopia": "2026-11-23",
   "observacao": "Fonte da verdade do desenho, copiada byte a byte do commit indicado, junto com rebobina-tokens.sha256 e os geradores gerar.mjs, gerar-kotlin.mjs e conferir.mjs. Não editar o JSON, o sha256 nem o arquivo gerado à mão: valor novo entra pela origem, em versão nova do JSON."
 }

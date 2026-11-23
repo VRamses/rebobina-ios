@@ -18,7 +18,7 @@ provisória, só para provar que o pipeline desenha na tela do iPhone. A interfa
 verdade entra na rodada de UX.
 
 Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) já estão no
-repositório, copiados do `rebobina-servidor` na versão 1.0.6, com o Kotlin deles gerado e
+repositório, copiados do `rebobina-servidor` na versão 1.0.7, com o Kotlin deles gerado e
 travado no build e no CI. Detalhe na seção [Os tokens de desenho](#os-tokens-de-desenho).
 Quem ainda não usa os tokens é a tela: ela continua provisória até a rodada de UX.
 
@@ -32,10 +32,10 @@ O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 no run #5 e
 run #6. A explicação provável do salto do run #4 para o #5 é a entrada do
 `ReboTokensGerado.kt` no `commonMain`: ele referencia `TextStyle`, `FontWeight`, `dp` e `sp`,
 o que puxa o stack de texto do Compose para dentro do link estático do framework. O segundo
-salto, de uns 15 KB, acompanha o `ReboTextos.kt` e os objetos novos da 1.0.5. É medida e
-hipótese, não causa provada por contagem de símbolo. O run #7, da 1.0.6, só mudou prosa e
-ferramenta, e o IPA ficou do mesmo tamanho (9.169.810 bytes, 1 byte acima do run #6): é o
-comportamento esperado quando nenhum valor de desenho muda, e confirma a leitura do salto.
+salto, de uns 15 KB, acompanha o `ReboTextos.kt` e os objetos novos daquela versão. É medida e
+hipótese, não causa provada por contagem de símbolo. O run #7, que só mudou prosa e ferramenta,
+manteve o tamanho: 9.169.810 bytes, 1 byte acima do run #6. É o comportamento esperado quando
+nenhum valor de desenho muda, e confirma a leitura do salto.
 
 **Se o iPhone estiver em iOS anterior ao 26, o app provavelmente não abre.** O motivo, o
 diagnóstico e as duas saídas estão no começo do [docs/ESTADO.md](docs/ESTADO.md).
@@ -206,12 +206,14 @@ docs/ESTADO.md                            o que está provado e o que não está
 
 Cor, tipo, espaço, raio, movimento e os textos de estado vêm de um JSON só, o
 `design/tokens/rebobina-tokens.json` do repositório `rebobina-servidor`. Este repositório tem
-uma cópia byte a byte em `design/tokens/`, versão **1.0.6**, 28.557 bytes, sha256
-`005401d0bf9a13f81687837c547317ca8083a5feaffb3c0e519fde222fa76c7a`, copiada do commit
-`8604b02c095e2ea7dbdfeb165f85f9b2a9f110bb`. A 1.0.6 não mexeu em valor de desenho: corrigiu
-prosa de `meta`, `canonico`, `consumidores` e `geracao` e estendeu o `conferir.mjs`. Por isso
-os dois `.kt` mudaram só na linha de cabeçalho que cita a versão e o sha256 do JSON, e o
-tamanho dos dois e os 20 objetos continuam os mesmos.
+uma cópia byte a byte em `design/tokens/`, versão **1.0.7**, 30.297 bytes, sha256
+`93a64806959169c3673570058cfeac2b54cef205a64da88d4f48e78a1aabc048`, copiada do commit
+`836785906686a558aa7c5ac4a77f2dcd0e0f6974`. A 1.0.7 não mexeu em valor de desenho: corrigiu a
+convenção do espaço no Kotlin, que dizia `ReboSpace.x<n>` quando o gerador sempre emitiu
+`ReboSpace.N<indice>` de `N0` a `N9`, e fez o `conferir.mjs` rodar dentro de um cliente que só
+recebe Kotlin, sem o `rebobina-textos.json`. Por isso os dois `.kt` mudaram só na linha de
+cabeçalho que cita a versão e o sha256 do JSON, e o tamanho dos dois e os 20 objetos continuam
+os mesmos.
 
 O Kotlin que o app usa é gerado, nunca escrito à mão, e são dois arquivos:
 
@@ -244,6 +246,11 @@ Ela confere três coisas: o sha256 do JSON contra `rebobina-tokens.sha256`; que 
 commitados são exatamente o que o gerador produz agora, comparados byte a byte. No GitHub
 Actions um passo faz a mesma conferência, regera os dois arquivos no lugar e exige
 `git diff --exit-code`, antes do Xcode, que é a parte cara da execução.
+
+O `design/tokens/conferir.mjs` é o conferidor do repositório canônico copiado verbatim, não a
+trava: ele fala com a API do GitHub, lista as cópias de `rebobina-ios`, `rebobina-android` e
+`rebobina-webos` e, num cliente que só recebe Kotlin como este, avisa que não há
+`rebobina-textos.json` ao lado dele e confere o resto sem as linhas de texto.
 
 Para atualizar um valor de desenho: mudar o JSON na origem, subir a versão lá, copiar JSON,
 sha256 e `gerar-kotlin.mjs` para cá, atualizar o `ORIGEM.json`, regerar os dois `.kt` e
