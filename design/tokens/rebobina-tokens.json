@@ -1,10 +1,11 @@
 {
   "meta": {
     "nome": "rebobina-tokens",
-    "versao": "1.0.4",
+    "versao": "1.0.5",
     "data": "2026-11-22",
     "autor": "Yara Baptista",
     "historico": [
+      "1.0.5 (22/11/2026, aplicação das 16 lacunas do LACUNAS-TOKENS.md): entra o que faltava para os três clientes novos não inventarem. Estado ganhou semRede, erro, vazio, semPasse e os textos de demora do carregando (L01 a L04). Tipo ganhou escalaTipo por plataforma (L05) e pisos por papel, mantendo o pisoLeitura (L06). Entraram os grupos selo (L07), icone (L14) e traco (L10). Foco ganhou halo (L08); plataforma ganhou dpad e vibracao (L09). cor.hover ganhou a regra que separa superfície de interação de efeito de ponteiro (L11). plataforma.ios entrou espelhando celular, e celular e ios ganharam areaSeguraFonte (L12). Avatar ganhou cor nos dois temas (L13). Movimento ganhou osdOcultarAposMs e reducao (L15 e L16). Texto de tela passou a viver neste arquivo e sai em rebobina-textos.json e ReboTextos.kt, com a folha CSS só de estilo. canonico.clientesVendorizados passou a declarar rebobina-webos, que copia o arquivo e não estava na lista. Nenhuma chave existente foi renomeada, apagada ou teve valor alterado, e os gerados foram refeitos. Na revisão do dono entraram duas correções de afirmação vencida: canonico.webNaoVendoriza e consumidores.css.observacao ainda diziam que web e webOS leem a mesma folha e citavam origemAindaNaoPublicada=true, o que a 1.0.4 desmentiu; os dois passam a repetir a regra de geracao.css.compartilhado, folha própria por consumidor a partir do mesmo JSON. rebobina-ios também passou a existe=true, porque o conferir.mjs achou a cópia 1.0.4 dele na main em 23/11/2026, e rebobina-android passou a existe=true pelo mesmo motivo na rodada seguinte, com a cópia 1.0.4 de 17.384 B que o conferidor passou a enxergar.",
       "1.0.4 (22/11/2026, revisao do lead): a convencao do Kotlin passou a nomear os grupos que estavam sem nome (tipo.peso, tipo.pisoLeitura, tipo.numeros, espaco.uso, estado.carregando, areaSegura, foco e as tres flags da plataforma) e a cor com alfa virou Color(0xAARRGGBB). Nenhum token de desenho mudou. Mesma versao tambem corrigiu duas declaracoes falsas da 1.0.3: rebobina-tv e rebobina-desktop constavam como clientes vendorizados sem ter copia (o conferir.mjs respondeu ausente nos dois) e passaram a existe=false, e canonico.cssGerado passou a listar as duas folhas geradas em design/tokens/, nao mais o caminho do overlay.",
       "1.0.3 (22/11/2026, revisao do lead): lista de consumidores acertada com os repositorios que existem, rebobina-ios e rebobina-android entraram com existe=false, e registrado que o webOS tem copia local transitoria enquanto o canonico nao e publicado. Nenhum token de desenho mudou.",
       "1.0.2 (22/11/2026): entrou tipo.numeros (algarismo tabular da sans) e o bloco canonico.",
@@ -24,7 +25,11 @@
       "Nenhum token de desenho e exclusivo de uma linguagem. O que nao vira CSS e metadado (meta, geracao, consumidores, canonico, trava) ou gesto (movimento.toqueLongo*), e a lista esta em geracao.css.naoEmitido.",
       "Este arquivo serve cinco clientes de desenho em duas linguagens: Kotlin/Compose na TV, no Android celular e no iOS, e CSS custom properties na web e no webOS.",
       "O endereco definitivo deste arquivo e rebobina-servidor, branch main, design/tokens/rebobina-tokens.json. _rebobina/entrega e pasta de trabalho e nao e fonte de nada.",
-      "O arquivo gerado de CSS tem nome fixo, rebobina-tokens.css, e prefixo fixo, --rebo-. Nenhum cliente escolhe outro nome nem outro prefixo."
+      "O arquivo gerado de CSS tem nome fixo, rebobina-tokens.css, e prefixo fixo, --rebo-. Nenhum cliente escolhe outro nome nem outro prefixo.",
+      "cor.hover é superfície de interação, não efeito de ponteiro: vale para foco de controle, ponteiro e seleção com o mesmo valor, e não para mouse em cima. Quem tem ponteiro pode reagir antes do clique; quem não tem usa o mesmo tom no foco e na seleção. Renomear para focusSurface fica para uma 1.1 hipotética, se algum dia.",
+      "tipo.pisoLeitura é o piso de leitura por plataforma e tipo.pisos é o piso por papel. Existe uma exceção única e escrita: tipo.escala.label de 11 só vale para rótulo em caixa alta (AO VIVO, TEMPORADA, GÊNERO), nunca para frase; metadado é 12 para cima em todas as plataformas.",
+      "estado.<estado> mistura texto e tempo de propósito: chave terminada em Ms é tempo, as demais são texto de tela. Texto que aparece em cinco plataformas mora aqui e não no cliente. A folha CSS não carrega texto: ele sai em rebobina-textos.json, para web e webOS, e em ReboTextos.kt, para Android e iOS.",
+      "selo.altura e selo.paddingHorizontal são medida por plataforma, como alvo: o gerador escolhe a linha da plataforma e multiplica pelo fator. selo.texto é papel tipográfico, não o conteúdo do selo; o conteúdo está em selo.variantes."
     ]
   },
 
@@ -32,8 +37,9 @@
     "repositorio": "rebobina-servidor",
     "branch": "main",
     "caminho": "design/tokens/rebobina-tokens.json",
-    "porque": "e o repositorio cuja branch main e a que esta publicada: e dele que saem o overlay da web e, por heranca, o do webOS. A TV e o modelo de desenho, mas o codigo do Rebobina nela vive na branch marcar-assistido, e a main e Jellyfin puro; guardar a fonte da verdade numa branch de trabalho faria cliente que copia da main nao achar nada.",
+    "porque": "é o repositório cuja branch main é a publicada: é dele que saem as folhas geradas da web e do webOS, e é dele que o webOS copia o JSON vendorizado. A TV é o modelo de desenho, mas o código do Rebobina nela vive na branch marcar-assistido, e a main é Jellyfin puro; guardar a fonte da verdade numa branch de trabalho faria cliente que copia da main não achar nada.",
     "cssGerado": ["design/tokens/rebobina-tokens.css", "design/tokens/rebobina-tokens-webos.css"],
+    "textosGerado": ["design/tokens/rebobina-textos.json", "design/tokens/ReboTextos.kt"],
     "conferidor": {
       "arquivo": "design/tokens/conferir.mjs",
       "fonte": "API do GitHub",
@@ -62,16 +68,24 @@
         "branch": "main",
         "caminho": "design/tokens/rebobina-tokens.json",
         "cobre": ["ios"],
-        "existe": false,
-        "observacao": "repositorio criado em 23/11/2026 e ja compilando IPA pelo CI, mas ainda sem copia dos tokens: enquanto nao houver copia, existe=false e o conferidor o ignora."
+        "existe": true,
+        "observacao": "cópia vendorizada do 1.0.4 na main desde 22/11/2026: sha256 67fe6750..., commit aa503ca no ORIGEM.json, reimportação para a 1.0.5 na rodada do dono. O conferir.mjs passou a achar a cópia em 23/11/2026, então existe=true; antes a entrada dizia sem cópia e o atraso não aparecia."
       },
       {
         "repositorio": "rebobina-android",
         "branch": "main",
         "caminho": "design/tokens/rebobina-tokens.json",
         "cobre": ["celular"],
-        "existe": false,
-        "observacao": "repositorio criado em 23/11/2026 a partir da base da TV, ja compilando APK pelo CI, mas ainda sem copia dos tokens: enquanto nao houver copia, existe=false e o conferidor o ignora. Enquanto a copia nao entra, o celular continua coberto pela copia do rebobina-tv."
+        "existe": true,
+        "observacao": "cópia vendorizada do 1.0.4 na main desde 22/11/2026: sha256 67fe6750..., 17.384 B, commit aa503ca no ORIGEM.json. O conferir.mjs passou a achar a cópia em 23/11/2026, então existe=true; o celular deixa de depender da cópia do rebobina-tv."
+      },
+      {
+        "repositorio": "rebobina-webos",
+        "branch": "main",
+        "caminho": "design/tokens/rebobina-tokens.json",
+        "cobre": ["webos"],
+        "existe": true,
+        "observacao": "cópia vendorizada desde 23/11/2026: o repositório tem design/tokens/rebobina-tokens.json, design/tokens/rebobina-tokens.sha256 e design/tokens/ORIGEM.json apontando o commit aa503ca, sem a marca origemAindaNaoPublicada que a 1.0.3 previa. O webOS não lê a folha da web: gera a própria com --plataforma webos (fator 2) e a empacota no .ipk. Com esta entrada o conferir.mjs passa a enxergar o repositório; antes, o webOS atrasava sem aviso."
       }
     ],
     "arquivoDeOrigem": {
@@ -79,19 +93,21 @@
       "campos": ["repositorio", "branch", "commit", "caminho", "sha256", "versao", "dataDaCopia"],
       "regra": "todo cliente vendorizado tem este arquivo ao lado do JSON; ele e a unica prova de qual commit do canonico aquela copia veio"
     },
-    "webNaoVendoriza": "web e webOS nao copiam o JSON: os dois consomem o rebobina-tokens.css gerado dentro do proprio rebobina-servidor, no caminho de deploy do overlay. Estado em 23/11/2026: o canonico ainda nao foi publicado no rebobina-servidor, entao o webOS tem uma copia local transitoria em design/tokens/, com design/tokens/ORIGEM.json marcado origemAindaNaoPublicada=true; essa copia sai quando o CSS passar a ser servido pelo overlay."
+    "webNaoVendoriza": "a web não vendoriza o JSON: ela consome a folha que o próprio rebobina-servidor gera com --plataforma web (fator 1) e que vai no deploy do overlay. O webOS não lê a folha da web: gera a própria folha do mesmo JSON com --plataforma webos (fator 2) e a empacota no .ipk, e desde 23/11/2026 mantém também cópia vendorizada do JSON em design/tokens/, com design/tokens/ORIGEM.json apontando o commit aa503ca e sem a marca origemAindaNaoPublicada que a 1.0.3 previa. O que a trava garante byte a byte é o JSON; a folha é de cada consumidor, com o fator de plataforma.<nome>.fator."
   },
 
   "consumidores": {
     "kotlin": {
       "clientes": ["tv", "celular", "ios"],
       "arquivo": "ReboTokensGerado.kt",
+      "arquivoTextos": "ReboTextos.kt",
       "observacao": "iOS entra por Compose Multiplatform nesta contagem, porque foi assim que o dono descreveu o consumo. Se a escolha for SwiftUI, o gerador ganha um alvo swift e os nomes de folha continuam os mesmos."
     },
     "css": {
       "clientes": ["web", "webos"],
       "arquivo": "rebobina-tokens.css",
-      "observacao": "Web e webOS leem o mesmo arquivo. O webOS nao tem CSS proprio: reaproveita o overlay da web, que ja le esta folha."
+      "arquivoTextos": "rebobina-textos.json",
+      "observacao": "Web e webOS não leem a mesma folha: cada consumidor gera a própria a partir do mesmo JSON vendorizado, com o próprio fator (web 1, webOS 2), e a folha de cada um é commitada no repositório dele. O webOS tem cópia vendorizada do JSON desde 23/11/2026, com ORIGEM.json apontando o commit do canônico."
     }
   },
 
@@ -100,7 +116,7 @@
       "pacote": "rebobina.android.ui.base.rebo",
       "arquivo": "ReboTokensGerado.kt",
       "prefixoObjeto": "Rebo",
-      "convencao": "cor.escuro -> object ReboColor com propriedade em PascalCase; cor.claro -> object ReboColorClaro com as mesmas propriedades; tipo.escala.<papel> -> ReboType.<papel> como TextStyle com tamanho, entrelinha, peso e espacamento em sp; tipo.escalaCelular.<papel> -> ReboTypeCelular.<papel>; espaco.degraus -> ReboSpace.x<n>; raio -> ReboRadius.<nome>; movimento -> ReboMotion.<nome>; cor.escuro -> object ReboColor; cor.claro -> object ReboColorClaro com as mesmas propriedades; cor com alfa -> Color(0xAARRGGBB) com alfa = round(alfa * 255); tipo.escala.<papel> -> ReboType.<papel>; tipo.escalaCelular.<papel> -> ReboTypeCelular.<papel>; os dois como TextStyle com fontSize, lineHeight, fontWeight e letterSpacing em sp; tipo.peso.<papel> -> ReboPeso.<papel> como FontWeight; tipo.pisoLeitura.<plataforma> -> ReboTypePiso.<plataforma> em sp; tipo.numeros -> ReboTypeNumeros, TextStyle com fontFeatureSettings tnum; espaco.degraus -> ReboSpace.x<n>; espaco.uso.<nome> -> ReboSpaceUso.<nome>, os dois em dp; raio -> ReboRadius.<nome> em dp; movimento -> ReboMotion.<nome> em Int de milissegundos; estado.carregando -> ReboEstadoCarregando.EsqueletoAposMs e TextoAposMs em Int de milissegundos; plataforma.<nome> -> object ReboSize.<Nome> com AlvoMinimo, AlvoLinha, AlvoControle, AlvoBarra, AlvoAnel, AlvoRespiro, AreaSeguraLateral, AreaSeguraTopo, FocoEscala, Relogio, Ponteiro e Hover; plataforma.<nome>.grade -> object ReboGrade.<Nome> com Colunas, ou ColunasVertical e ColunasHorizontal quando a plataforma declara as duas; tipo.familia nao vira constante: em Compose a pilha do sistema e FontFamily.Default e o cabecalho do arquivo gerado diz isso"
+      "convencao": "cor.escuro -> object ReboColor com propriedade em PascalCase; cor.claro -> object ReboColorClaro com as mesmas propriedades; tipo.escala.<papel> -> ReboType.<papel> como TextStyle com tamanho, entrelinha, peso e espacamento em sp; tipo.escalaCelular.<papel> -> ReboTypeCelular.<papel>; espaco.degraus -> ReboSpace.x<n>; raio -> ReboRadius.<nome>; movimento -> ReboMotion.<nome>; cor.escuro -> object ReboColor; cor.claro -> object ReboColorClaro com as mesmas propriedades; cor com alfa -> Color(0xAARRGGBB) com alfa = round(alfa * 255); tipo.escala.<papel> -> ReboType.<papel>; tipo.escalaCelular.<papel> -> ReboTypeCelular.<papel>; os dois como TextStyle com fontSize, lineHeight, fontWeight e letterSpacing em sp; tipo.peso.<papel> -> ReboPeso.<papel> como FontWeight; tipo.pisoLeitura.<plataforma> -> ReboTypePiso.<plataforma> em sp; tipo.numeros -> ReboTypeNumeros, TextStyle com fontFeatureSettings tnum; espaco.degraus -> ReboSpace.x<n>; espaco.uso.<nome> -> ReboSpaceUso.<nome>, os dois em dp; raio -> ReboRadius.<nome> em dp; movimento -> ReboMotion.<nome> em Int de milissegundos; estado.carregando -> ReboEstadoCarregando.EsqueletoAposMs e TextoAposMs em Int de milissegundos; plataforma.<nome> -> object ReboSize.<Nome> com AlvoMinimo, AlvoLinha, AlvoControle, AlvoBarra, AlvoAnel, AlvoRespiro, AreaSeguraLateral, AreaSeguraTopo, FocoEscala, Relogio, Ponteiro e Hover; plataforma.<nome>.grade -> object ReboGrade.<Nome> com Colunas, ou ColunasVertical e ColunasHorizontal quando a plataforma declara as duas; tipo.familia nao vira constante: em Compose a pilha do sistema e FontFamily.Default e o cabecalho do arquivo gerado diz isso; na 1.0.5 entram tipo.pisos.<papel> -> ReboTypePisos.<papel> em sp, plataforma.<nome>.escalaTipo e plataforma.<nome>.areaSeguraFonte -> val EscalaTipo e val AreaSeguraFonte como String dentro de ReboSize.<Nome>, plataforma.<nome>.foco.halo -> val FocoHalo em dp (os outros filhos de foco continuam em Float), plataforma.<nome>.dpad e plataforma.<nome>.vibracao -> Boolean, selo.<medida>.<plataforma> e selo.raio -> ReboSelo em dp, icone.tamanho.<nome> -> ReboIconeTamanho.<nome> em dp, traco.<nome> -> ReboTraco.<nome> em dp, movimento.osdOcultarAposMs e movimento.reducao.duracaoMs -> Int de milissegundos com movimento.reducao.escala em Float e respeitarSistema em Boolean, estado.<estado>.aposMs -> ReboEstadoApos.<Estado>AposMs em Int de milissegundos; texto nao vira TextStyle: estado e selo saem em ReboTextos.kt, gerado do mesmo JSON"
     },
     "css": {
       "arquivo": "rebobina-tokens.css",
@@ -108,9 +124,15 @@
       "seletorTemaClaro": "[data-rebo-tema=\"claro\"]",
       "atributoPlataforma": "[data-rebo-plataforma=\"tv|webos|web|desktop|celular\"]",
       "convencao": "caminho pontuado em kebab-case depois do prefixo, com o grupo cor omitido do nome final; cor com alfa sai como rgba(); tamanho de tipo e de espaco sai em px ja multiplicado pelo fator da plataforma",
-      "compartilhado": "cada consumidor gera a propria folha a partir deste mesmo JSON, com o proprio fator: o webOS roda gerar.mjs --plataforma webos (fator 2) e a web roda --plataforma web (fator 1). O que a trava garante byte a byte e o JSON vendorizado, nao o CSS; o CSS de cada cliente e conferido pelo conferir.mjs, que regera a folha de cada plataforma e compara com a que esta no repositorio.",
-      "naoEmitido": ["meta", "geracao", "trava", "consumidores", "canonico", "movimento.toqueLongoTv", "movimento.toqueLongoCelular"],
-      "motivoNaoEmitido": "meta, geracao, consumidores, canonico e trava sao metadado de geracao, nao desenho; toqueLongo e gesto, lido pelo JS de foco como constante, e nao um estilo que o CSS aplica."
+      "compartilhado": "cada consumidor gera a própria folha a partir deste mesmo JSON, com o próprio fator: o webOS roda gerar.mjs --plataforma webos (fator 2) e a web roda --plataforma web (fator 1). O que a trava garante byte a byte é o JSON vendorizado, não o CSS; a folha de cada cliente é conferida pela trava de build dele, que roda o gerador e compara o resultado com o arquivo commitado.",
+      "naoEmitido": ["meta", "geracao", "trava", "consumidores", "canonico", "movimento.toqueLongoTv", "movimento.toqueLongoCelular", "estado.<estado>.<chaveDeTexto>", "selo.texto", "selo.variantes"],
+      "motivoNaoEmitido": "meta, geracao, consumidores, canonico e trava sao metadado de geracao, nao desenho; toqueLongo e gesto, lido pelo JS de foco como constante, e nao um estilo que o CSS aplica. Texto tambem nao e estilo: estado.<estado> e selo.variantes saem em rebobina-textos.json, gerado pelo mesmo script, e a folha continua so de medida e cor."
+    },
+    "textos": {
+      "arquivoWeb": "rebobina-textos.json",
+      "arquivoKotlin": "ReboTextos.kt",
+      "fonte": "as chaves de texto de estado.<estado> e de selo.variantes deste arquivo",
+      "regra": "a folha CSS nao carrega texto; um gerado de texto por linguagem, com o mesmo sha256 do JSON na cabeca, para a fala das cinco plataformas sair do mesmo lugar. Trocar uma palavra de estado e uma versao nova aqui, nunca um patch no cliente."
     },
     "trava": {
       "algoritmo": "sha256",
@@ -142,6 +164,8 @@
       "field": "#0F1115",
       "fieldFocused": "#12151A",
       "slot": "#22262D",
+      "avatarInicio": "#3B4652",
+      "avatarFim": "#39414B",
       "scrim": { "cor": "#000000", "alfa": 0.72 },
       "overlay": { "cor": "#000000", "alfa": 0.55 }
     },
@@ -166,6 +190,8 @@
       "field": "#FFFFFF",
       "fieldFocused": "#F2F3F5",
       "slot": "#E8E9EC",
+      "avatarInicio": "#C9CDD4",
+      "avatarFim": "#DDE0E5",
       "scrim": { "cor": "#000000", "alfa": 0.45 },
       "overlay": { "cor": "#000000", "alfa": 0.35 }
     }
@@ -206,7 +232,9 @@
       "itemTitle": { "tamanho": 16, "entrelinha": 21, "peso": 600, "espacamento": 0 },
       "itemMeta": { "tamanho": 13, "entrelinha": 17, "peso": 400, "espacamento": 0 }
     },
-    "pisoLeitura": { "tv": 12, "webos": 12, "web": 12, "desktop": 12, "celular": 13 },
+    "pisoLeitura": { "tv": 12, "webos": 12, "web": 12, "desktop": 12, "celular": 13, "ios": 13 },
+    "pisos": { "leitura": 12, "metadado": 12, "rotulo": 11 },
+    "escalaPorPlataforma": "plataforma.<nome>.escalaTipo diz qual escala a plataforma usa: principal aponta para tipo.escala, celular aponta para tipo.escalaCelular. O gerador CSS escolhe a escala por essa chave e mantem o nome das variaveis, entao a folha nao muda de nome quando a plataforma troca de escala.",
     "numeros": {
       "algarismo": "tabular",
       "familiaMono": false,
@@ -247,71 +275,158 @@
     "heroi": 240,
     "folha": 300,
     "toqueLongoTv": 700,
-    "toqueLongoCelular": 500
+    "toqueLongoCelular": 500,
+    "osdOcultarAposMs": 5000,
+    "reducao": {
+      "duracaoMs": 0,
+      "escala": 1.0,
+      "respeitarSistema": true,
+      "consulta": "prefers-reduced-motion: reduce na web e no webOS; Settings.Global.ANIMATOR_DURATION_SCALE no Android; UIAccessibility.isReduceMotionEnabled no iOS"
+    }
   },
 
   "estado": {
     "carregando": {
       "esqueletoAposMs": 1000,
-      "textoAposMs": 8000
+      "textoAposMs": 8000,
+      "tituloDemora": "Ainda carregando",
+      "corpoDemora": "A rede está lenta. Já já aparece."
+    },
+    "semRede": {
+      "titulo": "Sem conexão",
+      "corpo": "Verifique a rede do aparelho e tente de novo.",
+      "acao": "Tentar de novo",
+      "detalheRotulo": "Ver detalhes",
+      "icone": "nuvemCortada",
+      "aposMs": 0
+    },
+    "erro": {
+      "titulo": "Algo deu errado",
+      "corpo": "Não foi possível carregar agora.",
+      "acao": "Tentar de novo",
+      "detalheRotulo": "Ver detalhes",
+      "icone": "alerta",
+      "aposMs": 0
+    },
+    "vazio": {
+      "titulo": "Nada por aqui",
+      "corpo": "Esta lista está vazia.",
+      "acao": "Voltar"
+    },
+    "semPasse": {
+      "titulo": "Sem passe ativo",
+      "corpo": "Esta área pede um passe ativo.",
+      "acao": "Ver passes"
     }
+  },
+
+  "selo": {
+    "altura": { "tv": 20, "webos": 20, "web": 20, "desktop": 20, "celular": 24, "ios": 24 },
+    "paddingHorizontal": { "tv": 8, "webos": 8, "web": 8, "desktop": 8, "celular": 10, "ios": 10 },
+    "raio": 2,
+    "texto": "meta",
+    "variantes": {
+      "aoVivo": { "cor": "brand", "texto": "AO VIVO" },
+      "pronto": { "cor": "ok", "texto": "PRONTO" },
+      "atencao": { "cor": "warn", "texto": "ATENÇÃO" }
+    }
+  },
+
+  "icone": {
+    "tamanho": { "pequeno": 16, "padrao": 20, "cartao": 24, "destaque": 32 }
+  },
+
+  "traco": {
+    "fio": 1,
+    "selecao": 2
   },
 
   "plataforma": {
     "tv": {
       "fator": 1,
       "unidade": "dp",
+      "escalaTipo": "principal",
       "grade": { "colunas": 7 },
       "areaSegura": { "lateral": 48, "topo": 27 },
       "alvo": { "minimo": 48, "linha": 56, "controle": 52, "barra": 56, "anel": 2, "respiro": 2 },
-      "foco": { "escala": 1.04 },
+      "foco": { "escala": 1.04, "halo": 2 },
       "relogio": true,
       "ponteiro": false,
-      "hover": false
+      "hover": false,
+      "dpad": true,
+      "vibracao": false
     },
     "webos": {
       "fator": 2,
       "unidade": "px",
+      "escalaTipo": "principal",
       "grade": { "colunas": 6 },
       "areaSegura": { "lateral": 0, "topo": 0 },
       "alvo": { "minimo": 48, "linha": 56, "controle": 52, "barra": 56, "anel": 2, "respiro": 2 },
-      "foco": { "escala": 1.04 },
+      "foco": { "escala": 1.04, "halo": 2 },
       "relogio": true,
       "ponteiro": true,
-      "hover": true
+      "hover": true,
+      "dpad": true,
+      "vibracao": false
     },
     "web": {
       "fator": 1,
       "unidade": "px",
+      "escalaTipo": "principal",
       "grade": { "colunas": 5 },
       "areaSegura": { "lateral": 0, "topo": 0 },
       "alvo": { "minimo": 40, "linha": 48, "controle": 44, "barra": 48, "anel": 2, "respiro": 2 },
-      "foco": { "escala": 1.02 },
+      "foco": { "escala": 1.02, "halo": 2 },
       "relogio": false,
       "ponteiro": true,
-      "hover": true
+      "hover": true,
+      "dpad": false,
+      "vibracao": false
     },
     "desktop": {
       "fator": 1,
       "unidade": "px",
+      "escalaTipo": "principal",
       "grade": { "colunas": 5 },
       "areaSegura": { "lateral": 0, "topo": 0 },
       "alvo": { "minimo": 40, "linha": 48, "controle": 44, "barra": 48, "anel": 2, "respiro": 2 },
-      "foco": { "escala": 1.02 },
+      "foco": { "escala": 1.02, "halo": 2 },
       "relogio": false,
       "ponteiro": true,
-      "hover": true
+      "hover": true,
+      "dpad": false,
+      "vibracao": false
     },
     "celular": {
       "fator": 1,
       "unidade": "dp",
+      "escalaTipo": "celular",
       "grade": { "colunasVertical": 3, "colunasHorizontal": 4 },
       "areaSegura": { "lateral": 0, "topo": 0 },
+      "areaSeguraFonte": "insets do sistema",
       "alvo": { "minimo": 48, "linha": 64, "controle": 56, "barra": 52, "anel": 0, "respiro": 0 },
-      "foco": { "escala": 1.0 },
+      "foco": { "escala": 1.0, "halo": 0 },
       "relogio": false,
       "ponteiro": false,
-      "hover": false
+      "hover": false,
+      "dpad": false,
+      "vibracao": true
+    },
+    "ios": {
+      "fator": 1,
+      "unidade": "dp",
+      "escalaTipo": "celular",
+      "grade": { "colunasVertical": 3, "colunasHorizontal": 4 },
+      "areaSegura": { "lateral": 0, "topo": 0 },
+      "areaSeguraFonte": "insets do sistema",
+      "alvo": { "minimo": 48, "linha": 64, "controle": 56, "barra": 52, "anel": 0, "respiro": 0 },
+      "foco": { "escala": 1.0, "halo": 0 },
+      "relogio": false,
+      "ponteiro": false,
+      "hover": false,
+      "dpad": false,
+      "vibracao": true
     }
   }
 }

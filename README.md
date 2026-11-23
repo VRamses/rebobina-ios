@@ -17,10 +17,20 @@ iOS, projeto Xcode, build no GitHub Actions e IPA para instalar. A tela do app a
 provisória, só para provar que o pipeline desenha na tela do iPhone. A interface de
 verdade entra na rodada de UX.
 
-O build do IPA já foi provado: o run #3 gerou o artefato `rebobina-ios-ipa-3` com
-`Rebobina.ipa` de 7.571.684 bytes (7,22 MiB). O que ainda **não** foi provado é abrir o
-app num iPhone, porque esta rodada não tem iPhone nem Mac para testar. Detalhe por
-detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
+Os tokens de desenho (cor, tipo, espaço, raio e movimento) já estão no repositório, copiados
+do `rebobina-servidor`, com o Kotlin deles gerado e travado no build e no CI. Quem ainda não
+usa os tokens é a tela: ela continua provisória até a rodada de UX.
+
+O build do IPA já foi provado: o run #5 (id 45101733957) gerou o artefato
+`rebobina-ios-ipa-5` com `Rebobina.ipa` de 9.153.629 bytes (8,73 MiB), sha256
+`b064641ca675e053112d750c917b71aa85aec04b5f444c1e5a64c62b21961fb2`. O que ainda **não** foi
+provado é abrir o app num iPhone, porque esta rodada não tem iPhone nem Mac para testar.
+Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
+
+O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 bytes no run #5. A
+hipótese mais provável é o `commonMain` agora referenciar `TextStyle`, `FontWeight`, `dp` e
+`sp`, o que puxa o stack de texto do Compose para dentro do link estático do framework. Não
+contei símbolo para provar isso; fica como medida, não como causa provada.
 
 **Se o iPhone estiver em iOS anterior ao 26, o app provavelmente não abre.** O motivo, o
 diagnóstico e as duas saídas estão no começo do [docs/ESTADO.md](docs/ESTADO.md).
@@ -53,7 +63,7 @@ runner macOS, que em repositório privado custam 10 vezes no orçamento do GitHu
 3. Na lista da esquerda, escolha **IPA iOS**.
 4. Botão **Run workflow**, escolha a branch `main`, escreva o motivo (opcional) e confirme.
 5. Espere o run terminar (medido: 4m58s na primeira vez, com o toolchain Kotlin/Native
-   baixando; 3m28s quando o cache do toolchain já existe).
+   baixando; de 3m13s a 4m21s quando o cache do toolchain já existe).
 6. Abra o run, desça até **Artifacts** e baixe `rebobina-ios-ipa-<número do run>`.
 7. Descompacte: dentro tem `Rebobina.ipa`. Esse é o arquivo cru do build; o que você
    instala no iPhone é o da release.
@@ -116,7 +126,7 @@ mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de 
 runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
 é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
-Conta feita, com os quatro builds que já rodaram:
+Conta feita, com os cinco builds que já rodaram:
 
 ```
 orçamento: 2.000 minutos cobrados por mês
@@ -128,16 +138,20 @@ run 1 (falhou, 4m58s)  238 s
 run 2 (falhou, 3m21s)  201 s
 run 3 (verde, 3m28s)   208 s
 run 4 (verde, 3m13s)   193 s
-soma:                  840 s = 14 minutos de runner macOS
+run 5 (verde, 4m21s)   261 s
+soma:                  1.101 s = 18 minutos e 21 segundos de runner macOS
 
-cobrado até agora: 14 x 10 = 140 minutos dos 2.000
-sobrou: 2.000 - 140 = 1.860 minutos cobrados
-1.860 / 10 = 186 minutos de runner macOS disponíveis
-186 / 3,5 minutos por build = cerca de 53 builds de 3m30s neste mês
+cobrado até agora: 18,35 x 10 = 183,5 minutos dos 2.000
+sobrou: 2.000 - 183,5 = 1.816,5 minutos cobrados
+1.816,5 / 10 = 181,65 minutos de runner macOS disponíveis
+181,65 / 3,5 minutos por build = cerca de 51 builds de 3m30s neste mês
 ```
 
-Ou seja: **sobram 186 minutos de runner macOS**, que dão cerca de 53 builds de 3m30s, e não
-1.860 minutos de Mac. Quando os 200 minutos de runner macOS do mês acabarem, os builds ficam
+Ou seja: **sobram cerca de 181 minutos de runner macOS**, que dão cerca de 51 builds de 3m30s.
+A conta acima trunca a duração de cada job ao minuto, então o número é o piso do gasto: o
+GitHub arredonda cada job para cima ao faturar, e o total real pode ficar alguns minutos
+acima. Não reconferi essa regra na documentação do GitHub nesta rodada.
+Quando os 200 minutos de runner macOS do mês acabarem, os builds ficam
 bloqueados até a virada do ciclo de cobrança. Por isso o gatilho é manual: cada disparo é
 decisão consciente, não efeito colateral de commit. O resumo de cada run mostra a duração e a
 conta de minutos cobrados, truncando para baixo run a run, então a soma dos resumos pode

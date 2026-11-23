@@ -63,7 +63,7 @@ val comandoNode: List<String> =
 
 val conferirTokens = tasks.register<Exec>("conferirTokens") {
     group = "verification"
-    description = "Confere a copia dos tokens e o ReboTokensGerado.kt (scripts/conferir-tokens.mjs)."
+    description = "Confere a copia dos tokens e o Kotlin gerado (scripts/conferir-tokens.mjs)."
     workingDir = raizDoRepositorio
     setCommandLine(comandoNode + listOf("scripts/conferir-tokens.mjs"))
 }

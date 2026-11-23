@@ -86,18 +86,20 @@ jobs:
       - name: Gradle com cache
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Trava dos tokens (sha256 e regeneracao)
+      - name: Trava dos tokens (sha256, regeneracao e diff)
         run: |
           set -euo pipefail
-          # design/tokens e copia byte a byte do rebobina-servidor e o Kotlin de
-          # commonMain/ui/tokens e gerado por design/tokens/gerar-kotlin.mjs.
-          # Aqui: regerar, comparar com o commitado e conferir o sha256 do JSON.
-          # Se qualquer um dos dois divergir, o build para antes do Xcode, que e a
-          # parte cara da execucao.
+          # design/tokens e copia byte a byte do rebobina-servidor, e o Kotlin de
+          # commonMain/ui/tokens (ReboTokensGerado.kt e ReboTextos.kt) e gerado por
+          # design/tokens/gerar-kotlin.mjs. Primeiro a mesma conferencia que o Gradle
+          # roda no build; depois regerar no lugar e exigir arvore limpa, para nenhuma
+          # copia editada a mao passar; por fim o sha256 do JSON contra o .sha256.
+          node scripts/conferir-tokens.mjs
           node design/tokens/gerar-kotlin.mjs \
             --pacote net.dynv6.rebobina.ui.tokens \
-            --saida composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTokensGerado.kt
-          git diff --exit-code -- composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTokensGerado.kt
+            --saida composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTokensGerado.kt \
+            --saida-textos composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTextos.kt
+          git diff --exit-code -- composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens
           ESPERADO="$(cut -d ' ' -f1 design/tokens/rebobina-tokens.sha256 | tr 'A-Z' 'a-z')"
           REAL="$(shasum -a 256 design/tokens/rebobina-tokens.json | cut -d ' ' -f1)"
           echo "sha256 do JSON:    $REAL"

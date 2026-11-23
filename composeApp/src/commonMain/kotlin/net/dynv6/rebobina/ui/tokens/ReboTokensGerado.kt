@@ -7,13 +7,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // GERADO A PARTIR DE design/tokens/rebobina-tokens.json. NAO EDITAR A MAO.
-// fonte: rebobina-tokens 1.0.4, 2026-11-22, Yara Baptista.
-// sha256 do JSON: 67fe6750b56c3fd84587792b9b54d4996164966dbe4968c20b5459d7dfca91f3
+// fonte: rebobina-tokens 1.0.5, 2026-11-22, Yara Baptista.
+// sha256 do JSON: a043d42591c4e91dc947054bbc43a1e5152c423423802f17d798710d0522e7b5
 // canonico: rebobina-servidor main design/tokens/rebobina-tokens.json.
 // familia: system-ui, Roboto, -apple-system, Segoe UI, sans-serif.
 // Sem fonte propria no repositorio (tipo.familia.propria = false): em Compose a pilha do
 // sistema e FontFamily.Default, entao nao existe constante de familia aqui.
 // Gerado por design/tokens/gerar-kotlin.mjs. Para mudar valor, mude o JSON na origem.
+// Texto nao vira TextStyle: estado e selo saem em ReboTextos.kt, gerado do mesmo JSON.
 
 // cor, tema escuro (cor.escuro)
 object ReboColor {
@@ -37,6 +38,8 @@ object ReboColor {
     val Field = Color(0xFF0F1115)
     val FieldFocused = Color(0xFF12151A)
     val Slot = Color(0xFF22262D)
+    val AvatarInicio = Color(0xFF3B4652)
+    val AvatarFim = Color(0xFF39414B)
     val Scrim = Color(0xB8000000)
     val Overlay = Color(0x8C000000)
 }
@@ -63,6 +66,8 @@ object ReboColorClaro {
     val Field = Color(0xFFFFFFFF)
     val FieldFocused = Color(0xFFF2F3F5)
     val Slot = Color(0xFFE8E9EC)
+    val AvatarInicio = Color(0xFFC9CDD4)
+    val AvatarFim = Color(0xFFDDE0E5)
     val Scrim = Color(0x73000000)
     val Overlay = Color(0x59000000)
 }
@@ -209,6 +214,14 @@ object ReboTypePiso {
     val Web = 12.sp
     val Desktop = 12.sp
     val Celular = 13.sp
+    val Ios = 13.sp
+}
+
+// tipo.pisos: piso por papel (rotulo 11 so em caixa alta, metadado 12 para cima)
+object ReboTypePisos {
+    val Leitura = 12.sp
+    val Metadado = 12.sp
+    val Rotulo = 11.sp
 }
 
 // tipo.numeros: algarismo tabular da sans, sem segunda familia
@@ -259,6 +272,55 @@ object ReboMotion {
     val Folha = 300
     val ToqueLongoTv = 700
     val ToqueLongoCelular = 500
+    val OsdOcultarAposMs = 5000
+}
+
+// movimento.reducao: como o desenho responde a preferencia de menos movimento
+object ReboMotionReducao {
+    val DuracaoMs = 0
+    val Escala = 1f
+    val RespeitarSistema = true
+}
+
+// selo: altura e respiro por plataforma; o texto esta em ReboTextos
+object ReboSelo {
+    object Altura {
+        val Tv = 20.dp
+        val Webos = 20.dp
+        val Web = 20.dp
+        val Desktop = 20.dp
+        val Celular = 24.dp
+        val Ios = 24.dp
+    }
+    object PaddingHorizontal {
+        val Tv = 8.dp
+        val Webos = 8.dp
+        val Web = 8.dp
+        val Desktop = 8.dp
+        val Celular = 10.dp
+        val Ios = 10.dp
+    }
+    val Raio = 2.dp
+}
+
+// icone.tamanho, em dp
+object ReboIconeTamanho {
+    val Pequeno = 16.dp
+    val Padrao = 20.dp
+    val Cartao = 24.dp
+    val Destaque = 32.dp
+}
+
+// traco: fio de 1 e selecao de 2, em dp
+object ReboTraco {
+    val Fio = 1.dp
+    val Selecao = 2.dp
+}
+
+// estado.<estado>.aposMs, em milissegundos
+object ReboEstadoApos {
+    val SemRedeAposMs = 0
+    val ErroAposMs = 0
 }
 
 // estado.carregando: quando o esqueleto e o texto entram
@@ -279,9 +341,13 @@ object ReboSize {
         val AreaSeguraLateral = 48.dp
         val AreaSeguraTopo = 27.dp
         val FocoEscala = 1.04f
+        val FocoHalo = 2.dp
+        val EscalaTipo = "principal"
         val Relogio = true
         val Ponteiro = false
         val Hover = false
+        val Dpad = true
+        val Vibracao = false
     }
     object Webos {
         val AlvoMinimo = 48.dp
@@ -293,9 +359,13 @@ object ReboSize {
         val AreaSeguraLateral = 0.dp
         val AreaSeguraTopo = 0.dp
         val FocoEscala = 1.04f
+        val FocoHalo = 2.dp
+        val EscalaTipo = "principal"
         val Relogio = true
         val Ponteiro = true
         val Hover = true
+        val Dpad = true
+        val Vibracao = false
     }
     object Web {
         val AlvoMinimo = 40.dp
@@ -307,9 +377,13 @@ object ReboSize {
         val AreaSeguraLateral = 0.dp
         val AreaSeguraTopo = 0.dp
         val FocoEscala = 1.02f
+        val FocoHalo = 2.dp
+        val EscalaTipo = "principal"
         val Relogio = false
         val Ponteiro = true
         val Hover = true
+        val Dpad = false
+        val Vibracao = false
     }
     object Desktop {
         val AlvoMinimo = 40.dp
@@ -321,9 +395,13 @@ object ReboSize {
         val AreaSeguraLateral = 0.dp
         val AreaSeguraTopo = 0.dp
         val FocoEscala = 1.02f
+        val FocoHalo = 2.dp
+        val EscalaTipo = "principal"
         val Relogio = false
         val Ponteiro = true
         val Hover = true
+        val Dpad = false
+        val Vibracao = false
     }
     object Celular {
         val AlvoMinimo = 48.dp
@@ -335,9 +413,33 @@ object ReboSize {
         val AreaSeguraLateral = 0.dp
         val AreaSeguraTopo = 0.dp
         val FocoEscala = 1f
+        val FocoHalo = 0.dp
+        val EscalaTipo = "celular"
+        val AreaSeguraFonte = "insets do sistema"
         val Relogio = false
         val Ponteiro = false
         val Hover = false
+        val Dpad = false
+        val Vibracao = true
+    }
+    object Ios {
+        val AlvoMinimo = 48.dp
+        val AlvoLinha = 64.dp
+        val AlvoControle = 56.dp
+        val AlvoBarra = 52.dp
+        val AlvoAnel = 0.dp
+        val AlvoRespiro = 0.dp
+        val AreaSeguraLateral = 0.dp
+        val AreaSeguraTopo = 0.dp
+        val FocoEscala = 1f
+        val FocoHalo = 0.dp
+        val EscalaTipo = "celular"
+        val AreaSeguraFonte = "insets do sistema"
+        val Relogio = false
+        val Ponteiro = false
+        val Hover = false
+        val Dpad = false
+        val Vibracao = true
     }
 }
 
@@ -356,6 +458,10 @@ object ReboGrade {
         val Colunas = 5
     }
     object Celular {
+        val ColunasVertical = 3
+        val ColunasHorizontal = 4
+    }
+    object Ios {
         val ColunasVertical = 3
         val ColunasHorizontal = 4
     }

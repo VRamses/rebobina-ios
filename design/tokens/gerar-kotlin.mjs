@@ -1,9 +1,10 @@
 // Gerador do Kotlin de tokens do Rebobina.
 //
 // Le apenas o JSON vendorizado ao lado deste arquivo e escreve o arquivo Kotlin
-// da convencao `geracao.kotlin` (rebobina-tokens.json, versao 1.0.4). Vale para
+// da convencao `geracao.kotlin` (rebobina-tokens.json, versao 1.0.5). Vale para
 // Android (Compose) e para iOS (Compose Multiplatform), que compartilham a mesma
-// linguagem de desenho.
+// linguagem de desenho. Os textos de estado e de selo saem em ReboTextos.kt,
+// gerado do mesmo JSON, porque texto nao e estilo.
 //
 // Uso:
 //   node design/tokens/gerar-kotlin.mjs
@@ -14,6 +15,7 @@
 // Opcoes:
 //   --pacote <pacote>   pacote do arquivo gerado (padrao: geracao.kotlin.pacote do JSON)
 //   --saida <caminho>   arquivo de saida (padrao: design/tokens/ReboTokensGerado.kt)
+//   --saida-textos <caminho>  arquivo de textos (padrao: ReboTextos.kt ao lado da saida)
 //   --prefixo <nome>    prefixo dos objetos (padrao: geracao.kotlin.prefixoObjeto, "Rebo")
 //   --indent <texto>    "tab" para tabulacao, senao 4 espacos
 //   --sem-trava         nao confere rebobina-tokens.sha256 (nao use no build)
@@ -64,6 +66,8 @@ const specKotlin = geracao.kotlin || {};
 
 const PACOTE = argumento('pacote', specKotlin.pacote);
 const SAIDA = argumento('saida', join(AQUI, specKotlin.arquivo || 'ReboTokensGerado.kt'));
+const SAIDA_TEXTOS = argumento('saida-textos',
+  join(dirname(SAIDA), ((geracao.textos || {}).arquivoKotlin) || 'ReboTextos.kt'));
 const PREFIXO = argumento('prefixo', specKotlin.prefixoObjeto || 'Rebo');
 const IND = argumento('indent', ' ') === 'tab' ? '\t' : '    ';
 
@@ -180,6 +184,14 @@ if (tokens.tipo.pisoLeitura) {
   p.push('}');
   blocos.push('// tipo.pisoLeitura: menor corpo de texto legivel por plataforma\n' + p.join('\n'));
 }
+if (tokens.tipo.pisos) {
+  const p = ['object ' + PREFIXO + 'TypePisos {'];
+  for (const chave of Object.keys(tokens.tipo.pisos)) {
+    p.push(IND + 'val ' + pascal(chave) + ' = ' + sp(tokens.tipo.pisos[chave]));
+  }
+  p.push('}');
+  blocos.push('// tipo.pisos: piso por papel (rotulo 11 so em caixa alta, metadado 12 para cima)\n' + p.join('\n'));
+}
 if (tokens.tipo.numeros) {
   const n = tokens.tipo.numeros;
   blocos.push([
@@ -196,7 +208,64 @@ if (tokens.espaco.uso) blocos.push(grupoSimples(PREFIXO + 'SpaceUso', tokens.esp
 blocos.push(grupoSimples(PREFIXO + 'Radius', tokens.raio, dp, '// raio, em dp'));
 blocos.push(grupoSimples(PREFIXO + 'Motion', tokens.movimento, (v) => String(v), '// movimento, em milissegundos'));
 
-// estado
+// movimento.reducao: objeto aninhado, fora do grupoSimples
+if (tokens.movimento && tokens.movimento.reducao) {
+  const r = tokens.movimento.reducao;
+  const linhas = ['object ' + PREFIXO + 'MotionReducao {'];
+  if (typeof r.duracaoMs === 'number') linhas.push(IND + 'val DuracaoMs = ' + r.duracaoMs);
+  if (typeof r.escala === 'number') linhas.push(IND + 'val Escala = ' + numero(r.escala) + 'f');
+  if (typeof r.respeitarSistema === 'boolean') linhas.push(IND + 'val RespeitarSistema = ' + r.respeitarSistema);
+  linhas.push('}');
+  blocos.push('// movimento.reducao: como o desenho responde a preferencia de menos movimento\n' + linhas.join('\n'));
+}
+
+// selo, icone e traco: medidas por plataforma e de tamanho fixo
+if (tokens.selo) {
+  const s = ['object ' + PREFIXO + 'Selo {'];
+  for (const medida of ['altura', 'paddingHorizontal']) {
+    const mapa = tokens.selo[medida] || {};
+    const nomes = Object.keys(mapa);
+    if (!nomes.length) continue;
+    s.push(IND + 'object ' + pascal(medida) + ' {');
+    for (const nome of nomes) s.push(IND + IND + 'val ' + pascal(nome) + ' = ' + dp(mapa[nome]));
+    s.push(IND + '}');
+  }
+  if (typeof tokens.selo.raio === 'number') s.push(IND + 'val Raio = ' + dp(tokens.selo.raio));
+  s.push('}');
+  blocos.push('// selo: altura e respiro por plataforma; o texto esta em ReboTextos\n' + s.join('\n'));
+}
+if (tokens.icone && tokens.icone.tamanho) {
+  const i = ['object ' + PREFIXO + 'IconeTamanho {'];
+  for (const chave of Object.keys(tokens.icone.tamanho)) {
+    i.push(IND + 'val ' + pascal(chave) + ' = ' + dp(tokens.icone.tamanho[chave]));
+  }
+  i.push('}');
+  blocos.push('// icone.tamanho, em dp\n' + i.join('\n'));
+}
+if (tokens.traco) {
+  const tr = ['object ' + PREFIXO + 'Traco {'];
+  for (const chave of Object.keys(tokens.traco)) {
+    tr.push(IND + 'val ' + pascal(chave) + ' = ' + dp(tokens.traco[chave]));
+  }
+  tr.push('}');
+  blocos.push('// traco: fio de 1 e selecao de 2, em dp\n' + tr.join('\n'));
+}
+
+// estado.<estado>.aposMs: quanto tempo cada tela de estado espera antes de aparecer.
+// Os textos de estado saem em ReboTextos.kt, gerado do mesmo JSON.
+if (tokens.estado) {
+  const apos = ['object ' + PREFIXO + 'EstadoApos {'];
+  let temApos = false;
+  for (const nome of Object.keys(tokens.estado)) {
+    const e = tokens.estado[nome];
+    if (!e || typeof e.aposMs !== 'number') continue;
+    temApos = true;
+    apos.push(IND + 'val ' + pascal(nome) + 'AposMs = ' + e.aposMs);
+  }
+  apos.push('}');
+  if (temApos) blocos.push('// estado.<estado>.aposMs, em milissegundos\n' + apos.join('\n'));
+}
+
 if (tokens.estado && tokens.estado.carregando) {
   const c = tokens.estado.carregando;
   blocos.push([
@@ -226,9 +295,16 @@ for (const nome of nomesPlataforma) {
   }
   const foco = p.foco || {};
   for (const chave of Object.keys(foco)) {
-    size.push(IND + IND + 'val Foco' + pascal(chave) + ' = ' + numero(foco[chave]) + 'f');
+    // foco.escala e numero puro; foco.halo e medida em dp, como alvo.anel
+    if (chave === 'halo') size.push(IND + IND + 'val FocoHalo = ' + dp(foco[chave]));
+    else size.push(IND + IND + 'val Foco' + pascal(chave) + ' = ' + numero(foco[chave]) + 'f');
   }
-  for (const flag of ['relogio', 'ponteiro', 'hover']) {
+  for (const texto of ['escalaTipo', 'areaSeguraFonte']) {
+    if (typeof p[texto] === 'string') {
+      size.push(IND + IND + 'val ' + pascal(texto) + ' = "' + p[texto] + '"');
+    }
+  }
+  for (const flag of ['relogio', 'ponteiro', 'hover', 'dpad', 'vibracao']) {
     if (typeof p[flag] === 'boolean') size.push(IND + IND + 'val ' + pascal(flag) + ' = ' + p[flag]);
   }
   size.push(IND + '}');
@@ -258,6 +334,7 @@ const cabecalho = [
   '// Sem fonte propria no repositorio (tipo.familia.propria = false): em Compose a pilha do',
   '// sistema e FontFamily.Default, entao nao existe constante de familia aqui.',
   '// Gerado por design/tokens/gerar-kotlin.mjs. Para mudar valor, mude o JSON na origem.',
+  '// Texto nao vira TextStyle: estado e selo saem em ReboTextos.kt, gerado do mesmo JSON.',
   ''
 ].join('\n');
 
@@ -277,6 +354,60 @@ const corpo = [
 
 mkdirSync(dirname(SAIDA), { recursive: true });
 writeFileSync(SAIDA, corpo, 'utf8');
+
+// ---- textos ----
+// Mesmo JSON, outra linguagem: texto de estado e de selo sai num arquivo proprio,
+// com o sha256 do JSON na cabeca, para a fala nao divergir entre plataformas.
+const escapar = (t) => String(t).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+function escreverTextosKotlin() {
+  const linhas = [
+    '// GERADO A PARTIR DE design/tokens/rebobina-tokens.json. NAO EDITAR A MAO.',
+    '// fonte: ' + (meta.nome || 'rebobina-tokens') + ' ' + (meta.versao || '?') + ', ' + (meta.data || '?') + ', ' + (meta.autor || '?') + '.',
+    '// sha256 do JSON: ' + real,
+    '// Gerado por design/tokens/gerar-kotlin.mjs. Para mudar palavra, mude o JSON na origem.',
+    '// A folha de estilo nao carrega texto: no web e no webOS o mesmo conteudo sai em rebobina-textos.json.',
+    '',
+    'package ' + PACOTE,
+    '',
+    'object ' + PREFIXO + 'Textos {'
+  ];
+  const estados = tokens.estado || {};
+  const nomesEstado = Object.keys(estados);
+  if (nomesEstado.length) {
+    linhas.push(IND + 'object Estado {');
+    for (const nome of nomesEstado) {
+      const e = estados[nome] || {};
+      const chaves = Object.keys(e).filter((chave) => typeof e[chave] === 'string' && !/Ms$/.test(chave));
+      if (!chaves.length) continue;
+      linhas.push(IND + IND + 'object ' + pascal(nome) + ' {');
+      for (const chave of chaves) {
+        linhas.push(IND + IND + IND + 'const val ' + pascal(chave) + ' = "' + escapar(e[chave]) + '"');
+      }
+      linhas.push(IND + IND + '}');
+    }
+    linhas.push(IND + '}');
+  }
+  const variantes = ((tokens.selo || {}).variantes) || {};
+  if (Object.keys(variantes).length) {
+    linhas.push(IND + 'object Selo {');
+    for (const nome of Object.keys(variantes)) {
+      const v = variantes[nome] || {};
+      linhas.push(IND + IND + 'object ' + pascal(nome) + ' {');
+      if (typeof v.texto === 'string') linhas.push(IND + IND + IND + 'const val Texto = "' + escapar(v.texto) + '"');
+      if (typeof v.cor === 'string') linhas.push(IND + IND + IND + 'const val Cor = "' + escapar(v.cor) + '"');
+      linhas.push(IND + IND + '}');
+    }
+    linhas.push(IND + '}');
+  }
+  linhas.push('}');
+  mkdirSync(dirname(SAIDA_TEXTOS), { recursive: true });
+  writeFileSync(SAIDA_TEXTOS, linhas.join('\n') + '\n', 'utf8');
+  process.stdout.write('textos-kotlin: ' + relative(RAIZ, SAIDA_TEXTOS) + ' com ' +
+    Object.keys(estados).length + ' estados e ' + Object.keys(variantes).length + ' selos\n');
+}
+
+escreverTextosKotlin();
 
 const objetos = blocos.length;
 process.stdout.write('kotlin: ' + relative(RAIZ, SAIDA) + ' com ' + objetos + ' objetos, pacote ' + PACOTE +

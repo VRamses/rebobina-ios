@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Trava dos tokens de desenho do rebobina-ios.
 //
-// Confere duas coisas e so duas:
+// Confere tres coisas e so tres:
 //   1. o sha256 de design/tokens/rebobina-tokens.json casa com rebobina-tokens.sha256;
 //   2. o Kotlin commitado em commonMain/ui/tokens/ReboTokensGerado.kt e exatamente o
-//      que design/tokens/gerar-kotlin.mjs produz agora.
+//      que design/tokens/gerar-kotlin.mjs produz agora;
+//   3. o mesmo vale para ReboTextos.kt, que o gerador tambem escreve.
 //
 // A copia em design/tokens e byte a byte do rebobina-servidor. Se a origem mudar,
 // nao adianta editar o Kotlin aqui: copie JSON e sha256 novos, regere e commite.
@@ -21,35 +22,35 @@ import { spawnSync } from 'node:child_process'
 const AQUI = dirname(fileURLToPath(import.meta.url))
 const RAIZ = join(AQUI, '..')
 const PASTA = join(RAIZ, 'design', 'tokens')
-
 const PACOTE = 'net.dynv6.rebobina.ui.tokens'
+const PACOTE_EM_PASTA = PACOTE.split('.').join('/')
+
 const JSON_DE_TOKENS = join(PASTA, 'rebobina-tokens.json')
 const SHA_DE_TOKENS = join(PASTA, 'rebobina-tokens.sha256')
 const ORIGEM = join(PASTA, 'ORIGEM.json')
 const GERADOR = join(PASTA, 'gerar-kotlin.mjs')
-const GERADO = join(
-  RAIZ,
-  'composeApp',
-  'src',
-  'commonMain',
-  'kotlin',
-  'net',
-  'dynv6',
-  'rebobina',
-  'ui',
-  'tokens',
-  'ReboTokensGerado.kt',
-)
-const TEMP = join(RAIZ, 'build', 'tokens', 'ReboTokensGerado.conferido.kt')
+
+const PASTA_DO_KOTLIN = join(RAIZ, 'composeApp', 'src', 'commonMain', 'kotlin', PACOTE_EM_PASTA)
+const CONFERIDOS = [
+  { nome: 'ReboTokensGerado.kt', linhaDoGerador: '--saida' },
+  { nome: 'ReboTextos.kt', linhaDoGerador: '--saida-textos' },
+]
+const PASTA_TEMP = join(RAIZ, 'build', 'tokens')
 
 function erro(mensagem) {
   console.error('trava dos tokens: ' + mensagem)
   process.exitCode = 1
 }
 
-for (const arquivo of [JSON_DE_TOKENS, SHA_DE_TOKENS, ORIGEM, GERADOR, GERADO]) {
+const obrigatorios = [JSON_DE_TOKENS, SHA_DE_TOKENS, ORIGEM, GERADOR]
+for (const arquivo of obrigatorios) {
   if (!existsSync(arquivo)) {
     erro('falta ' + relative(RAIZ, arquivo) + '. A copia de design/tokens esta incompleta.')
+  }
+}
+for (const { nome } of CONFERIDOS) {
+  if (!existsSync(join(PASTA_DO_KOTLIN, nome))) {
+    erro('falta ' + relative(RAIZ, join(PASTA_DO_KOTLIN, nome)) + '. Gere de novo e commite.')
   }
 }
 if (process.exitCode) process.exit()
@@ -69,8 +70,29 @@ if (shaDoJson !== shaEsperado) {
   process.exit()
 }
 
-mkdirSync(dirname(TEMP), { recursive: true })
-const geracao = spawnSync(process.execPath, [GERADOR, '--pacote', PACOTE, '--saida', TEMP], {
+const versao = (JSON.parse(bytesDoJson.toString('utf8')).meta || {}).versao || '?'
+const origem = JSON.parse(readFileSync(ORIGEM, 'utf8'))
+if (origem.versao !== versao || origem.sha256 !== shaDoJson) {
+  erro(
+    'ORIGEM.json nao conta a mesma historia do JSON: versao ' +
+      origem.versao +
+      ' e sha256 ' +
+      String(origem.sha256).slice(0, 12) +
+      '..., JSON diz ' +
+      versao +
+      ' e ' +
+      shaDoJson.slice(0, 12) +
+      '...',
+  )
+  process.exit()
+}
+
+mkdirSync(PASTA_TEMP, { recursive: true })
+const argumentos = ['--pacote', PACOTE]
+for (const { nome, linhaDoGerador } of CONFERIDOS) {
+  argumentos.push(linhaDoGerador, join(PASTA_TEMP, nome.replace(/\.kt$/, '.conferido.kt')))
+}
+const geracao = spawnSync(process.execPath, [GERADOR, ...argumentos], {
   cwd: RAIZ,
   encoding: 'utf8',
 })
@@ -84,38 +106,49 @@ if (geracao.status !== 0) {
   process.exit()
 }
 
-const geradoAgora = readFileSync(TEMP)
-const geradoCommitado = readFileSync(GERADO)
-if (!geradoAgora.equals(geradoCommitado)) {
-  const linhasCommitadas = geradoCommitado.toString('utf8').split('\n')
-  const linhasNovas = geradoAgora.toString('utf8').split('\n')
-  let linha = 0
-  while (
-    linha < linhasCommitadas.length &&
-    linha < linhasNovas.length &&
-    linhasCommitadas[linha] === linhasNovas[linha]
-  ) {
-    linha++
+const tamanhos = []
+for (const { nome } of CONFERIDOS) {
+  const geradoAgoraPath = join(PASTA_TEMP, nome.replace(/\.kt$/, '.conferido.kt'))
+  const commitadoPath = join(PASTA_DO_KOTLIN, nome)
+  const geradoAgora = readFileSync(geradoAgoraPath)
+  const geradoCommitado = readFileSync(commitadoPath)
+  if (!geradoAgora.equals(geradoCommitado)) {
+    const linhasCommitadas = geradoCommitado.toString('utf8').split('\n')
+    const linhasNovas = geradoAgora.toString('utf8').split('\n')
+    let linha = 0
+    while (
+      linha < linhasCommitadas.length &&
+      linha < linhasNovas.length &&
+      linhasCommitadas[linha] === linhasNovas[linha]
+    ) {
+      linha++
+    }
+    erro(
+      nome +
+        ' nao e o que o gerador produz (primeira linha diferente: ' +
+        (linha + 1) +
+        ').\n  commitado: ' +
+        JSON.stringify(linhasCommitadas[linha] ?? '(fim do arquivo)') +
+        '\n  gerado:    ' +
+        JSON.stringify(linhasNovas[linha] ?? '(fim do arquivo)') +
+        '\n  Regere e commite: node design/tokens/gerar-kotlin.mjs --pacote ' +
+        PACOTE +
+        ' --saida ' +
+        relative(RAIZ, join(PASTA_DO_KOTLIN, 'ReboTokensGerado.kt')) +
+        ' --saida-textos ' +
+        relative(RAIZ, join(PASTA_DO_KOTLIN, 'ReboTextos.kt')),
+    )
+    process.exit()
   }
-  erro(
-    'ReboTokensGerado.kt nao e o que o gerador produz (primeira linha diferente: ' +
-      (linha + 1) +
-      ').\n  commitado: ' +
-      JSON.stringify(linhasCommitadas[linha] ?? '(fim do arquivo)') +
-      '\n  gerado:    ' +
-      JSON.stringify(linhasNovas[linha] ?? '(fim do arquivo)') +
-      '\n  Regere e commite: node design/tokens/gerar-kotlin.mjs --pacote ' +
-      PACOTE +
-      ' --saida ' +
-      relative(RAIZ, GERADO),
-  )
-  process.exit()
+  tamanhos.push(nome + ' com ' + geradoAgora.length + ' bytes')
 }
 
 console.log(
-  'trava dos tokens: ok, sha256 ' +
+  'trava dos tokens: ok, versao ' +
+    versao +
+    ', sha256 ' +
     shaDoJson.slice(0, 12) +
     '..., ' +
-    geradoAgora.length +
-    ' bytes gerados iguais ao commitado',
+    tamanhos.join(' e ') +
+    ' iguais ao commitado',
 )
