@@ -1,0 +1,187 @@
+name: IPA iOS
+
+# Build manual (workflow_dispatch) e tag v* (ex.: v0.1.0).
+# Sem gatilho de push em branch: cada execucao gasta minutos de runner macOS,
+# que em repositorio privado valem 10x na cota.
+on:
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: "Motivo deste build (fica registrado no log)"
+        required: false
+        default: "build manual"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ipa-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    name: Compilar IPA sem assinatura
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Inicio do cronometro
+        run: echo "INICIO_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Ferramentas do runner
+        run: |
+          set -euo pipefail
+          echo "Motivo: ${{ github.event.inputs.motivo }}"
+          xcodebuild -version
+          xcode-select -p
+          swift --version || true
+          echo "--- SDKs iPhone ---"
+          xcodebuild -showsdks | grep -i iphoneos || true
+          echo "--- Android SDK presente na imagem (o modulo tambem tem alvo Android) ---"
+          echo "ANDROID_HOME=${ANDROID_HOME:-vazio}"
+
+      - name: Validar arquivos do projeto antes de gastar tempo
+        run: |
+          set -euo pipefail
+          plutil -lint iosApp/iosApp/Info.plist
+          plutil -convert xml1 -o /dev/null iosApp/iosApp.xcodeproj/project.pbxproj
+          xmllint --noout iosApp/iosApp.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+          xmllint --noout "iosApp/iosApp.xcodeproj/xcshareddata/xcschemes/iosApp.xcscheme"
+          sh -n scripts/build-kotlin-framework.sh
+          xcodebuild -list -project iosApp/iosApp.xcodeproj
+
+      - name: JDK 21 (temurin)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Cache do toolchain Kotlin/Native
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: |
+            konan-${{ runner.os }}-
+
+      - name: Gradle com cache
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Versao do app
+        run: |
+          set -euo pipefail
+          VERSAO="$(tr -d '\r\n ' < rebobina.version)"
+          echo "APP_VERSION=$VERSAO" >> "$GITHUB_ENV"
+          echo "APP_BUILD=$(date -u +%Y%m%d%H%M)" >> "$GITHUB_ENV"
+          echo "Versao: $VERSAO"
+
+      - name: Compilar Kotlin (iOS arm64)
+        run: |
+          set -o pipefail
+          ./gradlew :composeApp:compileKotlinIosArm64 --stacktrace --console=plain 2>&1 | tee kotlin-compile.log
+
+      - name: Xcode archive sem assinatura
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild archive \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Rebobina.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            MARKETING_VERSION="$APP_VERSION" \
+            CURRENT_PROJECT_VERSION="$APP_BUILD" \
+            2>&1 | tee xcodebuild-archive.log
+
+      - name: Empacotar IPA
+        run: |
+          set -euo pipefail
+          APP="build/Rebobina.xcarchive/Products/Applications/Rebobina.app"
+          if [ ! -d "$APP" ]; then
+            echo "ERRO: app nao encontrado em $APP"
+            find build/Rebobina.xcarchive -maxdepth 4 -type d -print || true
+            exit 1
+          fi
+          echo "--- Info.plist do app dentro do arquivo ---"
+          plutil -p "$APP/Info.plist"
+          echo "--- Arquiteturas do binario ---"
+          lipo -info "$APP/Rebobina" || true
+          rm -rf build/ipa
+          mkdir -p build/ipa/Payload
+          cp -R "$APP" build/ipa/Payload/
+          cd build/ipa
+          zip -qry Rebobina.ipa Payload
+          ls -l Rebobina.ipa
+          unzip -l Rebobina.ipa | tail -5
+
+      - name: Resumo do build
+        if: success()
+        run: |
+          set -euo pipefail
+          IPA="build/ipa/Rebobina.ipa"
+          BYTES="$(stat -f%z "$IPA")"
+          MIB="$(awk "BEGIN { printf \"%.2f\", $BYTES/1048576 }")"
+          SHA="$(shasum -a 256 "$IPA" | awk '{print $1}')"
+          FIM="$(date +%s)"
+          SEGUNDOS="$((FIM - INICIO_EPOCH))"
+          MIN="$((SEGUNDOS / 60))"
+          SEG="$((SEGUNDOS % 60))"
+          MIN_COBRADO="$((MIN * 10))"
+          {
+            echo "### Rebobina iOS: IPA gerado"
+            echo ""
+            echo "| item | valor |"
+            echo "|---|---|"
+            echo "| versao | ${APP_VERSION} (build ${APP_BUILD}) |"
+            echo "| arquivo | Rebobina.ipa |"
+            echo "| tamanho | ${BYTES} bytes (${MIB} MiB) |"
+            echo "| sha256 | \`${SHA}\` |"
+            echo "| duracao do job | ${MIN}m ${SEG}s |"
+            echo "| runner macOS | ${MIN} min, cobrados como $((SEGUNDOS * 10 / 60)) min da cota (fator 10 de repo privado) |"
+            echo "| run | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar IPA
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rebobina-ios-ipa-${{ github.run_number }}
+          path: build/ipa/Rebobina.ipa
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Publicar logs da falha
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rebobina-ios-logs-${{ github.run_number }}
+          path: |
+            kotlin-compile.log
+            xcodebuild-archive.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Resumo da falha
+        if: failure()
+        run: |
+          {
+            echo "### Rebobina iOS: build falhou"
+            echo ""
+            echo "Passo que falhou: ${GITHUB_JOB} / ver o log do passo marcado em vermelho."
+            echo "Logs publicados no artefato rebobina-ios-logs-${{ github.run_number }} quando existirem."
+            echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "$GITHUB_STEP_SUMMARY"

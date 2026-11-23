@@ -1,0 +1,7 @@
+# Tudo em LF: o gradlew e os scripts shell quebram no runner macOS com CRLF.
+* text=auto eol=lf
+
+# Binarios de verdade, sem conversao de fim de linha.
+*.jar binary
+*.png binary
+*.zip binary
