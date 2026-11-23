@@ -273,9 +273,11 @@ porque `NSAllowsLocalNetworking` cobre a rede local inteira.
 
 Precisa de **Xcode 26 ou mais novo**, porque o Compose Multiplatform 1.11.1 chama uma
 classe que só existe no SDK do iOS 26 (com Xcode 16.4 o link do app falha em
-`UIViewLayoutRegion`), e de JDK 21.
+`UIViewLayoutRegion`), e de JDK 21. No binário a referência a essa classe sai como weak
+import, então o SDK novo é exigência do link no Mac, não do aparelho.
 
-O app roda em iOS 16 ou mais novo: o alvo mínimo do projeto Xcode é 16.0.
+O app roda em iOS 17 ou mais novo: o alvo mínimo do projeto Xcode é 17.0 desde 23/11/2026,
+quando o Ramses decidiu o mínimo 17 (antes era 16.0).
 
 ```
 cd iosApp

@@ -27,7 +27,9 @@ jobs:
     # macos-26 (Xcode 26.x, SDK iOS 26) e nao macos-15 (Xcode 16.4, SDK iOS 18.5):
     # o Compose Multiplatform 1.11.1 chama UIViewLayoutRegion em CMPLayoutRegion.o,
     # classe que so existe no SDK do iOS 26. No SDK antigo o link do app falha com
-    # "Undefined symbols: _OBJC_CLASS_$_UIViewLayoutRegion".
+    # "Undefined symbols: _OBJC_CLASS_$_UIViewLayoutRegion". O alvo minimo do app e
+    # 17.0: no binario essa classe sai como weak import, entao o SDK 26 e exigencia
+    # do link no runner, nao do aparelho.
     runs-on: macos-26
     timeout-minutes: 45
 

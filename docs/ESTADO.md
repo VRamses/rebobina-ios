@@ -4,13 +4,18 @@
 
 ## Se o app não abrir no iPhone, leia isto primeiro
 
-Se o iPhone estiver em iOS anterior ao 26, o app provavelmente não abre. O binário foi
-linkado contra o SDK do iOS 26 e referencia a classe `UIViewLayoutRegion`, que só existe no
-UIKit do iOS 26. Na hora de abrir, a mensagem é:
+O alvo mínimo do app é **iOS 17.0**, decisão do Ramses em 23/11/2026. O binário é linkado
+contra o SDK do iOS 26 (Xcode 26.6 no runner) e referencia a classe `UIViewLayoutRegion`, que
+só existe no UIKit do iOS 26, mas essa referência é fraca: no Mach-O do IPA a importação
+`_OBJC_CLASS_$_UIViewLayoutRegion` tem `weak_import = 1` e o `LC_BUILD_VERSION` do binário
+declara `minos 17.0`. Por isso o dyld de um iPhone com iOS 17 a 25 não falha por esse
+símbolo; o Compose 1.11.1 só usa a classe no caminho do iOS 26.
 
-```
-Symbol not found: _OBJC_CLASS_$_UIViewLayoutRegion
-```
+A narração anterior, de que o app provavelmente não abriria em iOS anterior ao 26, era
+hipótese minha, não medição: o projeto declarava mínimo 16.0 e o símbolo já saía fraco. Ela
+foi substituída pela prova acima, feita no IPA do run #8. O que quebrava de verdade era o
+link no runner `macos-15` (SDK iOS 18.5), que não tem o stub da classe: erro de build, não
+de aparelho.
 
 O que fazer, em três linhas:
 
@@ -19,12 +24,10 @@ O que fazer, em três linhas:
    `Rebobina`). No Windows, o mesmo relatório sai por 3uTools ou por
    `idevicecrashreport -u <UDID> -e <pasta>`, se o libimobiledevice estiver instalado. Com Mac,
    use o Console: **Janela > Dispositivos e Simuladores > Abrir Console**.
-2. Se a mensagem contiver `_OBJC_CLASS_$_UIViewLayoutRegion`, o problema não é a instalação
-   nem o Sideloadly: é a versão do sistema.
-3. As duas saídas: subir o mínimo do app para iOS 26 (`IPHONEOS_DEPLOYMENT_TARGET`, o que só
-   deixa instalar em iPhone com iOS 26) ou fixar uma versão anterior do Compose Multiplatform
-   que resolva esse símbolo em tempo de execução (a faixa 1.10.x é a candidata, não testada
-   aqui).
+2. Se a versão do sistema for anterior ao iOS 17, o Sideloadly não instala: o mínimo é 17.0.
+   Em iOS 17 a 25 a instalação vale, e o comportamento não foi medido num aparelho.
+3. Se a mensagem citar `_OBJC_CLASS_$_UIViewLayoutRegion` como símbolo obrigatório, seria
+   contradição com o weak import provado no IPA: me avise em vez de reinstalar.
 
 Resumo: o build do IPA funciona no GitHub Actions e o IPA está publicado como release
 `v0.1.0`, com o arquivo renomeado para baixar e instalar. Os tokens de desenho na versão 1.0.7
@@ -58,16 +61,15 @@ máquina.
 
 - **Abrir o app num iPhone.** Não existe iPhone nem Mac nesta máquina. O IPA sai sem
   assinatura; quem assina com Apple ID gratuito é o Sideloadly ou o AltStore, no PC do
-  Ramses. Se o aparelho estiver em iOS anterior ao 26, veja a seção do começo deste
-  documento.
+  Ramses. Se o aparelho estiver em iOS anterior ao 17, o Sideloadly não instala; veja a
+  seção do começo deste documento.
 - **Instalar por Sideloadly ou AltStore.** O README descreve o caminho, mas nenhuma
   instalação foi executada por mim.
 - **Rodar no simulador iOS.** Não há Mac aqui.
-- **Rodar em iPhone com iOS anterior ao 26.** O binário foi linkado contra o SDK do iOS 26 e
-  referencia a classe `UIViewLayoutRegion`, que só existe no UIKit do iOS 26. O Compose
-  Multiplatform 1.11.1 usa essa classe em código guardado por versão, e o projeto declara
-  mínimo iOS 16.0, mas o comportamento em iOS 16 a 18 não foi testado. As saídas estão na
-  primeira seção.
+- **Rodar em iPhone com iOS 17 a 25.** O alvo mínimo é 17.0 e o símbolo `UIViewLayoutRegion`
+  do iOS 26 sai como weak import (prova no item 17 da tabela), mas a abertura num aparelho de
+  verdade não foi executada, por falta de aparelho aqui. O comportamento em iOS 17 a 25
+  continua não medido.
 - **Alvo Android do módulo.** `compileSdk` 36 e `minSdk` 24 configurados, nenhuma tarefa
   Android executada e não existe módulo de launcher Android nesta rodada.
 - **Tela de verdade.** A atual é provisória, marcada como placeholder em
@@ -134,15 +136,23 @@ havia o que linkar. A tentativa foi revertida no commit `8e72fa0`.
 O Compose Multiplatform 1.11.1 (`ui-uikit`, objeto `CMPLayoutRegion.o`) chama
 `UIViewLayoutRegion`, API de layout do iOS 26. Com SDK anterior ao do iOS 26 o símbolo não
 existe no SDK público e o link do app quebra, mesmo com o framework Kotlin compilando bem.
-Correção aplicada no commit `8e72fa0`: runner `macos-26` (Xcode 26.6, SDK iOS 26.5),
-mínimo do app em iOS 16.0 e `compileSdk`/`targetSdk` do módulo Android em 36, que é a
-plataforma instalada na imagem do runner (a `android-37` pura não está).
+Correção aplicada no commit `8e72fa0` (histórica: o mínimo do app depois foi para 17.0 em
+23/11/2026): runner `macos-26` (Xcode 26.6, SDK iOS 26.5), mínimo do app em iOS 16.0 e
+`compileSdk`/`targetSdk` do módulo Android em 36, que é a plataforma instalada na imagem do
+runner (a `android-37` pura não está).
+
+Em 23/11/2026 o Ramses decidiu o mínimo **iOS 17**, e o alvo foi de 16.0 para 17.0 nos quatro
+blocos do `project.pbxproj`. O Compose Multiplatform 1.11.1 continua: o que exigiria trocar de
+versão era a hipótese de que o símbolo do iOS 26 fosse obrigatório em tempo de execução, e o
+weak import do IPA derrubou essa hipótese. Trocar o Compose só volta à mesa se um aparelho com
+iOS 17 falhar citando a classe.
 
 ## Suposições visíveis
 
-1. Assumi que o iPhone do Ramses roda iOS 16 ou mais novo ao subir o mínimo para 16.0. Se
-   for mais antigo, é preciso baixar `IPHONEOS_DEPLOYMENT_TARGET`, e o teste em iOS anterior
-   ao 26 continua não provado.
+1. Assumi que o alvo mínimo pedido é exatamente 17.0, e não manter 16.0, porque a decisão do
+   Ramses foi "alvo mínimo de iOS 17" e o aceite pede `MinimumOSVersion 17.0`. Se o iPhone
+   dele for anterior ao iOS 17, é preciso baixar mais o `IPHONEOS_DEPLOYMENT_TARGET` num
+   commit novo.
 2. Assumi que o download da release será feito logado na conta `VRamses`, porque o
    repositório é privado.
 3. Assumi que o nome do arquivo (`Rebobina-0.1.0-unsigned.ipa`) pode ser diferente do nome
@@ -150,12 +160,17 @@ plataforma instalada na imagem do runner (a `android-37` pura não está).
 4. Assumi o valor de orçamento do GitHub para repositório privado: 2.000 minutos cobrados por
    mês, com fator 10 para macOS. A conta de gasto acima é soma das durações reais dos jobs
    vezes 10, sem conferir o medidor de cobrança do GitHub.
-5. Assumi que o erro do iOS anterior ao 26 aparece na abertura, como símbolo não resolvido,
-   porque o binário referencia a classe do UIKit novo. Não testei num aparelho antigo.
+5. (Histórica, refutada em 23/11/2026.) Eu tinha assumido que o erro do iOS anterior ao 26
+   apareceria na abertura, como símbolo não resolvido, porque o binário referencia a classe do
+   UIKit novo. O `weak_import = 1` no Mach-O do IPA mostra que o símbolo é fraco, então o dyld
+   não falha; a abertura em aparelho com iOS 17 a 25 segue não testada.
 6. A comparação entre versões consecutivas dos tokens foi feita por um script de folhas planas
    (cada caminho de campo virou uma linha) e pelas duas linhas de cabeçalho dos `.kt`. Não
    comparei os dois JSONs linha a linha de texto, então uma mudança de valor que preservasse a
    contagem de folhas apareceria como folha alterada, e não como valor igual.
+7. Assumi que o `weak_import` do símbolo é o que o compilador emite quando a classe é mais
+   nova que o alvo, e não algo configurado por mim. Li a referência fraca no binário; não li
+   na fonte do Compose qual `if #available` protege a chamada.
 
 ## Como reproduzir a conferência
 
