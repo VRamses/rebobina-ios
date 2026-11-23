@@ -37,7 +37,8 @@ O último IPA medido em detalhe é o do run #11 (id 45206725111, 23/11/2026), o 
 reimportação do canônico 1.1.0: artefato `rebobina-ios-ipa-11` com 10.583.573 bytes (zip),
 `Rebobina.ipa` de 10.634.122 bytes (10,14 MiB), sha256
 `8d08d080eda6e2acd372ef2b72ae4eba07575f33a2b4dc9068155e5503c0634c`, binário `Rebobina` de
-29.581.904 bytes, job verde em 4m42s, cerca de 46 minutos cobrados. O `Info.plist` de dentro
+29.581.904 bytes, job verde em 4m35s (run de 4m42s), 45,8 minutos cobrados pelo piso de 275 s,
+ou 50 se o GitHub arredondar o job para cima ao faturar. O `Info.plist` de dentro
 dele não foi aberto nesta rodada; o do run #10 dizia `MinimumOSVersion 17.0`. O passo extra do
 CI provou que o mesmo `commonMain` compila também para Android: o run #11 mostra
 `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` e `BUILD SUCCESSFUL in 9s`. O que
