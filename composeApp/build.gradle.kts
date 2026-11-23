@@ -35,3 +35,38 @@ kotlin {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Trava dos tokens de desenho.
+//
+// design/tokens/ e copia byte a byte de rebobina-servidor (branch main) e a unica
+// fonte de valor de cor, tipo, espaco, raio e movimento. O Kotlin de
+// commonMain/ui/tokens/ReboTokensGerado.kt e gerado por design/tokens/gerar-kotlin.mjs.
+//
+// A conferencia mora em scripts/conferir-tokens.mjs para ser a mesma no Gradle e no
+// GitHub Actions: ela confere o sha256 do JSON contra rebobina-tokens.sha256 e regera o
+// Kotlin para comparar byte a byte com o arquivo commitado. Esta tarefa roda antes de
+// qualquer compileKotlin e antes de check, entao o framework iOS nao sai com token fora
+// de sincronia.
+// ---------------------------------------------------------------------------
+
+val raizDoRepositorio = rootProject.projectDir
+
+// No Windows o node do PATH e um .cmd, que o ProcessBuilder nao executa direto; o
+// cmd.exe /c resolve. No macOS e no Linux o node roda como esta no PATH.
+val comandoNode: List<String> =
+    if (System.getProperty("os.name").lowercase().contains("windows")) {
+        listOf("cmd.exe", "/c", "node")
+    } else {
+        listOf("node")
+    }
+
+val conferirTokens = tasks.register<Exec>("conferirTokens") {
+    group = "verification"
+    description = "Confere a copia dos tokens e o ReboTokensGerado.kt (scripts/conferir-tokens.mjs)."
+    workingDir = raizDoRepositorio
+    setCommandLine(comandoNode + listOf("scripts/conferir-tokens.mjs"))
+}
+
+tasks.matching { it.name.startsWith("compileKotlin") || it.name == "check" }
+    .configureEach { dependsOn(conferirTokens) }

@@ -1,0 +1,10 @@
+{
+  "repositorio": "rebobina-servidor",
+  "branch": "main",
+  "commit": "aa503ca898dba5a12bf1e846ecf1a6968c0546ba",
+  "caminho": "design/tokens/rebobina-tokens.json",
+  "sha256": "67fe6750b56c3fd84587792b9b54d4996164966dbe4968c20b5459d7dfca91f3",
+  "versao": "1.0.4",
+  "dataDaCopia": "2026-11-22",
+  "observacao": "Fonte da verdade do desenho, copiada byte a byte do commit indicado. Não editar o JSON, o sha256 nem o arquivo gerado à mão: valor novo entra pela origem, em versão nova do JSON."
+}
