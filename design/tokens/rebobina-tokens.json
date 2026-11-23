@@ -1,10 +1,11 @@
 {
   "meta": {
     "nome": "rebobina-tokens",
-    "versao": "1.0.5",
-    "data": "2026-11-22",
+    "versao": "1.0.6",
+    "data": "2026-11-23",
     "autor": "Yara Baptista",
     "historico": [
+      "1.0.6 (23/11/2026, prosa vencida e conferidor estendido): nenhuma mudança de desenho, nenhum valor de cor, tipo, espaço, raio, movimento, estado, plataforma, ícone, selo ou traço tocado. Saíram as afirmações que a própria 1.0.5 venceu: a regra que mandava o webOS carregar a folha da web e trocar o fator pelo atributo passou a dizer que cada consumidor gera a própria folha do mesmo JSON e que as duas não podem divergir em valor, só no fator; a regra do nome fixo da folha de CSS passou a dizer o nome por plataforma, rebobina-tokens.css na web e rebobina-tokens-webos.css no webOS, do mesmo gerador com --plataforma diferente; as três contagens erradas de cinco plataformas passaram a seis (a regra de meta, a regra de estado e a regra de geracao.textos); geracao.css.atributoPlataforma ganhou ios, que faltava na lista; e os campos arquivo de consumidores.css e de geracao.css passaram a descrever a regra de nome por plataforma em vez de prometer um nome único. canonico.clientesVendorizados da TV passou a cobre [\"tv\"], porque o celular é servido pelo rebobina-android, que tem cópia. canonico.conferidor.oQueConfere passou a declarar a conferência do rebobina-textos.json, e o conferir.mjs passou a conferir esse arquivo em quem é consumidor CSS, comparando bytes e sha256 com o do canônico e dizendo sem textos quando o cliente não tem o arquivo; para iOS e Android, que recebem Kotlin, a checagem continua sendo a versão do JSON. Dez correções de conteúdo: nove de prosa e o cobre da TV.",
       "1.0.5 (22/11/2026, aplicação das 16 lacunas do LACUNAS-TOKENS.md): entra o que faltava para os três clientes novos não inventarem. Estado ganhou semRede, erro, vazio, semPasse e os textos de demora do carregando (L01 a L04). Tipo ganhou escalaTipo por plataforma (L05) e pisos por papel, mantendo o pisoLeitura (L06). Entraram os grupos selo (L07), icone (L14) e traco (L10). Foco ganhou halo (L08); plataforma ganhou dpad e vibracao (L09). cor.hover ganhou a regra que separa superfície de interação de efeito de ponteiro (L11). plataforma.ios entrou espelhando celular, e celular e ios ganharam areaSeguraFonte (L12). Avatar ganhou cor nos dois temas (L13). Movimento ganhou osdOcultarAposMs e reducao (L15 e L16). Texto de tela passou a viver neste arquivo e sai em rebobina-textos.json e ReboTextos.kt, com a folha CSS só de estilo. canonico.clientesVendorizados passou a declarar rebobina-webos, que copia o arquivo e não estava na lista. Nenhuma chave existente foi renomeada, apagada ou teve valor alterado, e os gerados foram refeitos. Na revisão do dono entraram duas correções de afirmação vencida: canonico.webNaoVendoriza e consumidores.css.observacao ainda diziam que web e webOS leem a mesma folha e citavam origemAindaNaoPublicada=true, o que a 1.0.4 desmentiu; os dois passam a repetir a regra de geracao.css.compartilhado, folha própria por consumidor a partir do mesmo JSON. rebobina-ios também passou a existe=true, porque o conferir.mjs achou a cópia 1.0.4 dele na main em 23/11/2026, e rebobina-android passou a existe=true pelo mesmo motivo na rodada seguinte, com a cópia 1.0.4 de 17.384 B que o conferidor passou a enxergar.",
       "1.0.4 (22/11/2026, revisao do lead): a convencao do Kotlin passou a nomear os grupos que estavam sem nome (tipo.peso, tipo.pisoLeitura, tipo.numeros, espaco.uso, estado.carregando, areaSegura, foco e as tres flags da plataforma) e a cor com alfa virou Color(0xAARRGGBB). Nenhum token de desenho mudou. Mesma versao tambem corrigiu duas declaracoes falsas da 1.0.3: rebobina-tv e rebobina-desktop constavam como clientes vendorizados sem ter copia (o conferir.mjs respondeu ausente nos dois) e passaram a existe=false, e canonico.cssGerado passou a listar as duas folhas geradas em design/tokens/, nao mais o caminho do overlay.",
       "1.0.3 (22/11/2026, revisao do lead): lista de consumidores acertada com os repositorios que existem, rebobina-ios e rebobina-android entraram com existe=false, e registrado que o webOS tem copia local transitoria enquanto o canonico nao e publicado. Nenhum token de desenho mudou.",
@@ -21,14 +22,14 @@
       "cor.escuro e o tema padrao. cor.claro so entra quando o seletor de tema claro estiver ativo, no Kotlin com ReboColorClaro e no CSS com [data-rebo-tema=\"claro\"].",
       "Cor com transparencia e objeto com cor e alfa, nunca hexadecimal de 8 digitos, porque Android le AARRGGBB e CSS le RRGGBBAA, e a troca silenciosa e o erro mais caro deste arquivo.",
       "plataforma define fator de densidade e altura de alvo. O gerador multiplica; a tela nao multiplica.",
-      "A mesma folha serve a web e ao webOS: o webOS nao tem folha propria, ele carrega o overlay da web e troca o fator pelo atributo [data-rebo-plataforma]. Se a web divergir deste arquivo, o webOS divergiu junto.",
+      "Cada consumidor de CSS gera a própria folha a partir deste mesmo JSON: a web roda gerar.mjs --plataforma web (fator 1) e o webOS roda --plataforma webos (fator 2); o webOS não carrega a folha da web. As duas folhas não podem divergir em valor, só no fator de plataforma.<nome>.fator, e a trava de build de cada cliente reprova folha editada à mão.",
       "Nenhum token de desenho e exclusivo de uma linguagem. O que nao vira CSS e metadado (meta, geracao, consumidores, canonico, trava) ou gesto (movimento.toqueLongo*), e a lista esta em geracao.css.naoEmitido.",
-      "Este arquivo serve cinco clientes de desenho em duas linguagens: Kotlin/Compose na TV, no Android celular e no iOS, e CSS custom properties na web e no webOS.",
+      "Este arquivo serve seis plataformas de desenho em duas linguagens: tv, desktop, celular e ios em Kotlin/Compose, e web e webos em CSS custom properties.",
       "O endereco definitivo deste arquivo e rebobina-servidor, branch main, design/tokens/rebobina-tokens.json. _rebobina/entrega e pasta de trabalho e nao e fonte de nada.",
-      "O arquivo gerado de CSS tem nome fixo, rebobina-tokens.css, e prefixo fixo, --rebo-. Nenhum cliente escolhe outro nome nem outro prefixo.",
+      "A folha gerada de CSS tem prefixo fixo, --rebo-, e nome por plataforma: rebobina-tokens.css na web e rebobina-tokens-webos.css no webOS, as duas do mesmo gerar.mjs com --plataforma diferente. Nenhum cliente escolhe outro nome nem outro prefixo.",
       "cor.hover é superfície de interação, não efeito de ponteiro: vale para foco de controle, ponteiro e seleção com o mesmo valor, e não para mouse em cima. Quem tem ponteiro pode reagir antes do clique; quem não tem usa o mesmo tom no foco e na seleção. Renomear para focusSurface fica para uma 1.1 hipotética, se algum dia.",
       "tipo.pisoLeitura é o piso de leitura por plataforma e tipo.pisos é o piso por papel. Existe uma exceção única e escrita: tipo.escala.label de 11 só vale para rótulo em caixa alta (AO VIVO, TEMPORADA, GÊNERO), nunca para frase; metadado é 12 para cima em todas as plataformas.",
-      "estado.<estado> mistura texto e tempo de propósito: chave terminada em Ms é tempo, as demais são texto de tela. Texto que aparece em cinco plataformas mora aqui e não no cliente. A folha CSS não carrega texto: ele sai em rebobina-textos.json, para web e webOS, e em ReboTextos.kt, para Android e iOS.",
+      "estado.<estado> mistura texto e tempo de propósito: chave terminada em Ms é tempo, as demais são texto de tela. Texto que aparece em seis plataformas mora aqui e não no cliente. A folha CSS não carrega texto: ele sai em rebobina-textos.json, para web e webOS, e em ReboTextos.kt, para Android e iOS.",
       "selo.altura e selo.paddingHorizontal são medida por plataforma, como alvo: o gerador escolhe a linha da plataforma e multiplica pelo fator. selo.texto é papel tipográfico, não o conteúdo do selo; o conteúdo está em selo.variantes."
     ]
   },
@@ -43,7 +44,7 @@
     "conferidor": {
       "arquivo": "design/tokens/conferir.mjs",
       "fonte": "API do GitHub",
-      "oQueConfere": "sha256 do JSON canonico contra o sha256 de cada copia vendorizada e meta.versao igual em todas; falha quando um hash diverge e diz qual repositorio esta atrasado",
+      "oQueConfere": "sha256 do JSON canonico contra o sha256 de cada copia vendorizada, meta.versao igual em todas, e nos consumidores de CSS o rebobina-textos.json ao lado da copia, conferido por bytes e sha256 contra o do canonico, com linha propria: em dia, ATRASADO ou sem textos. Para iOS e Android, que recebem Kotlin, a checagem de texto continua sendo so a versao do JSON. Falha quando um hash diverge e diz qual repositorio esta atrasado",
       "oQueNaoConfere": "nao gera arquivo: a conferencia do gerado e a trava de build de cada cliente, que roda o gerador e compara com o commitado"
     },
     "clientesVendorizados": [
@@ -51,7 +52,7 @@
         "repositorio": "rebobina-tv",
         "branch": "marcar-assistido",
         "caminho": "design/tokens/rebobina-tokens.json",
-        "cobre": ["tv", "celular"],
+        "cobre": ["tv"],
         "existe": false,
         "observacao": "declarado na 1.0.3 sem copia real: em 22/11/2026 o conferir.mjs nao achou design/tokens/rebobina-tokens.json neste repositorio, entao a copia entra quando ele consumir os tokens gerados. A branch muda quando o Rebobina for para a main, e a branch declarada no design/tokens/ORIGEM.json tem de acompanhar."
       },
@@ -105,7 +106,7 @@
     },
     "css": {
       "clientes": ["web", "webos"],
-      "arquivo": "rebobina-tokens.css",
+      "arquivo": "rebobina-tokens.css na web e rebobina-tokens-webos.css no webOS, as duas do mesmo gerar.mjs com --plataforma diferente",
       "arquivoTextos": "rebobina-textos.json",
       "observacao": "Web e webOS não leem a mesma folha: cada consumidor gera a própria a partir do mesmo JSON vendorizado, com o próprio fator (web 1, webOS 2), e a folha de cada um é commitada no repositório dele. O webOS tem cópia vendorizada do JSON desde 23/11/2026, com ORIGEM.json apontando o commit do canônico."
     }
@@ -119,10 +120,10 @@
       "convencao": "cor.escuro -> object ReboColor com propriedade em PascalCase; cor.claro -> object ReboColorClaro com as mesmas propriedades; tipo.escala.<papel> -> ReboType.<papel> como TextStyle com tamanho, entrelinha, peso e espacamento em sp; tipo.escalaCelular.<papel> -> ReboTypeCelular.<papel>; espaco.degraus -> ReboSpace.x<n>; raio -> ReboRadius.<nome>; movimento -> ReboMotion.<nome>; cor.escuro -> object ReboColor; cor.claro -> object ReboColorClaro com as mesmas propriedades; cor com alfa -> Color(0xAARRGGBB) com alfa = round(alfa * 255); tipo.escala.<papel> -> ReboType.<papel>; tipo.escalaCelular.<papel> -> ReboTypeCelular.<papel>; os dois como TextStyle com fontSize, lineHeight, fontWeight e letterSpacing em sp; tipo.peso.<papel> -> ReboPeso.<papel> como FontWeight; tipo.pisoLeitura.<plataforma> -> ReboTypePiso.<plataforma> em sp; tipo.numeros -> ReboTypeNumeros, TextStyle com fontFeatureSettings tnum; espaco.degraus -> ReboSpace.x<n>; espaco.uso.<nome> -> ReboSpaceUso.<nome>, os dois em dp; raio -> ReboRadius.<nome> em dp; movimento -> ReboMotion.<nome> em Int de milissegundos; estado.carregando -> ReboEstadoCarregando.EsqueletoAposMs e TextoAposMs em Int de milissegundos; plataforma.<nome> -> object ReboSize.<Nome> com AlvoMinimo, AlvoLinha, AlvoControle, AlvoBarra, AlvoAnel, AlvoRespiro, AreaSeguraLateral, AreaSeguraTopo, FocoEscala, Relogio, Ponteiro e Hover; plataforma.<nome>.grade -> object ReboGrade.<Nome> com Colunas, ou ColunasVertical e ColunasHorizontal quando a plataforma declara as duas; tipo.familia nao vira constante: em Compose a pilha do sistema e FontFamily.Default e o cabecalho do arquivo gerado diz isso; na 1.0.5 entram tipo.pisos.<papel> -> ReboTypePisos.<papel> em sp, plataforma.<nome>.escalaTipo e plataforma.<nome>.areaSeguraFonte -> val EscalaTipo e val AreaSeguraFonte como String dentro de ReboSize.<Nome>, plataforma.<nome>.foco.halo -> val FocoHalo em dp (os outros filhos de foco continuam em Float), plataforma.<nome>.dpad e plataforma.<nome>.vibracao -> Boolean, selo.<medida>.<plataforma> e selo.raio -> ReboSelo em dp, icone.tamanho.<nome> -> ReboIconeTamanho.<nome> em dp, traco.<nome> -> ReboTraco.<nome> em dp, movimento.osdOcultarAposMs e movimento.reducao.duracaoMs -> Int de milissegundos com movimento.reducao.escala em Float e respeitarSistema em Boolean, estado.<estado>.aposMs -> ReboEstadoApos.<Estado>AposMs em Int de milissegundos; texto nao vira TextStyle: estado e selo saem em ReboTextos.kt, gerado do mesmo JSON"
     },
     "css": {
-      "arquivo": "rebobina-tokens.css",
+      "arquivo": "rebobina-tokens.css na web e rebobina-tokens-webos.css no webOS, as duas do mesmo gerar.mjs com --plataforma diferente",
       "prefixo": "--rebo-",
       "seletorTemaClaro": "[data-rebo-tema=\"claro\"]",
-      "atributoPlataforma": "[data-rebo-plataforma=\"tv|webos|web|desktop|celular\"]",
+      "atributoPlataforma": "[data-rebo-plataforma=\"tv|webos|web|desktop|celular|ios\"]",
       "convencao": "caminho pontuado em kebab-case depois do prefixo, com o grupo cor omitido do nome final; cor com alfa sai como rgba(); tamanho de tipo e de espaco sai em px ja multiplicado pelo fator da plataforma",
       "compartilhado": "cada consumidor gera a própria folha a partir deste mesmo JSON, com o próprio fator: o webOS roda gerar.mjs --plataforma webos (fator 2) e a web roda --plataforma web (fator 1). O que a trava garante byte a byte é o JSON vendorizado, não o CSS; a folha de cada cliente é conferida pela trava de build dele, que roda o gerador e compara o resultado com o arquivo commitado.",
       "naoEmitido": ["meta", "geracao", "trava", "consumidores", "canonico", "movimento.toqueLongoTv", "movimento.toqueLongoCelular", "estado.<estado>.<chaveDeTexto>", "selo.texto", "selo.variantes"],
@@ -132,7 +133,7 @@
       "arquivoWeb": "rebobina-textos.json",
       "arquivoKotlin": "ReboTextos.kt",
       "fonte": "as chaves de texto de estado.<estado> e de selo.variantes deste arquivo",
-      "regra": "a folha CSS nao carrega texto; um gerado de texto por linguagem, com o mesmo sha256 do JSON na cabeca, para a fala das cinco plataformas sair do mesmo lugar. Trocar uma palavra de estado e uma versao nova aqui, nunca um patch no cliente."
+      "regra": "a folha CSS nao carrega texto; um gerado de texto por linguagem, com o mesmo sha256 do JSON na cabeca, para a fala das seis plataformas sair do mesmo lugar. Trocar uma palavra de estado e uma versao nova aqui, nunca um patch no cliente."
     },
     "trava": {
       "algoritmo": "sha256",

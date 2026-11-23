@@ -9,7 +9,7 @@
 //
 // A folha e so estilo. Texto de estado e de selo sai em rebobina-textos.json, na
 // mesma pasta, gerado por este script com o mesmo sha256 na cabeca: a fala das
-// cinco plataformas vem do JSON unico, nunca do cliente.
+// seis plataformas vem do JSON unico, nunca do cliente.
 //
 // Uso: node design/tokens/gerar.mjs [--plataforma webos|tv|web|desktop|celular|ios]
 //        [--saida rebobina-tokens.css] [--textos rebobina-textos.json]
@@ -284,7 +284,7 @@ function declaracoesDeMedida() {
 }
 
 // ---- textos ----
-// A folha CSS e so estilo. Texto de estado e de selo e o mesmo nas cinco
+// A folha CSS e so estilo. Texto de estado e de selo e o mesmo nas seis
 // plataformas, entao sai num gerado proprio, com o sha256 do JSON na cabeca.
 function escreverTextos() {
   var estados = {};
@@ -310,7 +310,7 @@ function escreverTextos() {
     fonte: 'design/tokens/rebobina-tokens.json',
     sha256DoJson: real,
     gerado: 'design/tokens/rebobina-textos.json',
-    porque: 'texto de estado e de selo e o mesmo nas cinco plataformas; trocar uma palavra e versao nova no JSON, nunca patch no cliente',
+    porque: 'texto de estado e de selo e o mesmo nas seis plataformas; trocar uma palavra e versao nova no JSON, nunca patch no cliente',
     estado: estados,
     selo: selo
   };

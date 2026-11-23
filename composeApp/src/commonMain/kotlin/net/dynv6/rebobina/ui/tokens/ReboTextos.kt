@@ -1,6 +1,6 @@
 // GERADO A PARTIR DE design/tokens/rebobina-tokens.json. NAO EDITAR A MAO.
-// fonte: rebobina-tokens 1.0.5, 2026-11-22, Yara Baptista.
-// sha256 do JSON: a043d42591c4e91dc947054bbc43a1e5152c423423802f17d798710d0522e7b5
+// fonte: rebobina-tokens 1.0.6, 2026-11-23, Yara Baptista.
+// sha256 do JSON: 005401d0bf9a13f81687837c547317ca8083a5feaffb3c0e519fde222fa76c7a
 // Gerado por design/tokens/gerar-kotlin.mjs. Para mudar palavra, mude o JSON na origem.
 // A folha de estilo nao carrega texto: no web e no webOS o mesmo conteudo sai em rebobina-textos.json.
 

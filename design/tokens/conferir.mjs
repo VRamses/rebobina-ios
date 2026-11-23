@@ -13,16 +13,23 @@
 //
 // O token sai de GITHUB_TOKEN ou do `gh auth token`. Nunca e escrito em lugar
 // nenhum: o script so o usa no cabecalho da requisicao.
+//
+// Desde a 1.0.6 confere tambem o rebobina-textos.json de quem e consumidor de
+// CSS (web e webOS): bytes e sha256 contra o do canonico, com linha propria.
+// Para quem recebe Kotlin (tv, celular, ios via Android/desktop) a checagem de
+// texto continua sendo a versao do JSON vendorizado, porque o texto desses
+// clientes sai de ReboTextos.kt gerado no pacote deles.
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, '..', '..');
 const ARQUIVO_JSON = join(AQUI, 'rebobina-tokens.json');
+const ARQUIVO_TEXTOS = join(AQUI, 'rebobina-textos.json');
 
 const tolerar = process.argv.includes('--tolerar');
 const arg = (nome, padrao) => {
@@ -61,6 +68,32 @@ const meta = tokens.meta || {};
 const canonico = tokens.canonico || {};
 const MEU_SHA = sha256(bruto);
 const DONO = arg('dono', 'VRamses');
+
+// O texto de tela de web e webOS sai daqui, do mesmo JSON, e cada consumidor
+// commitou uma copia. Sem o arquivo no canonico nao ha o que comparar.
+if (!existsSync(ARQUIVO_TEXTOS)) {
+  process.stderr.write('erro: falta ' + relative(RAIZ, ARQUIVO_TEXTOS) + ', que e gerado pelo gerar.mjs\n');
+  process.exit(2);
+}
+const TEXTO_BRUTO = readFileSync(ARQUIVO_TEXTOS);
+const TEXTO_SHA = sha256(TEXTO_BRUTO);
+const TEXTO_TAMANHO = TEXTO_BRUTO.length;
+
+// o gerado de texto carrega o sha256 do JSON na cabeca: se nao casar, o texto
+// esta velho em relacao ao desenho e o resto da conferencia seria enganoso.
+try {
+  const cabeca = JSON.parse(TEXTO_BRUTO.toString('utf8'));
+  if (cabeca.sha256DoJson && cabeca.sha256DoJson !== MEU_SHA) {
+    process.stderr.write('erro: ' + relative(RAIZ, ARQUIVO_TEXTOS) + ' foi gerado de outro JSON (' +
+      cabeca.sha256DoJson + '); regenere com o gerar.mjs antes de conferir\n');
+    process.exit(2);
+  }
+} catch (e) {
+  process.stderr.write('erro: ' + relative(RAIZ, ARQUIVO_TEXTOS) + ' nao e JSON valido\n');
+  process.exit(2);
+}
+
+const CLIENTES_CSS = (tokens.consumidores && tokens.consumidores.css && tokens.consumidores.css.clientes) || [];
 
 async function conteudo(repositorio, caminho, branch) {
   const url = 'https://api.github.com/repos/' + DONO + '/' + repositorio + '/contents/' + caminho +
@@ -153,6 +186,35 @@ for (const cliente of clientes) {
   }
 
   linhas.push({ repositorio: cliente.repositorio, branch: cliente.branch, situacao: situacao, ok: ok });
+
+  // quem consome CSS tem tambem a copia do texto de tela, ao lado do JSON
+  const cobre = cliente.cobre || [];
+  if (cobre.some((c) => CLIENTES_CSS.includes(c))) {
+    const pasta = dirname(caminho);
+    const caminhoTextos = (pasta === '.' ? 'design/tokens' : pasta) + '/rebobina-textos.json';
+    const textosCopia = await conteudo(cliente.repositorio, caminhoTextos, cliente.branch);
+    let situacaoTextos;
+    let okTextos = true;
+    if (textosCopia.estado === 'ausente') {
+      situacaoTextos = 'sem textos';
+      okTextos = false;
+      problemas++;
+    } else if (textosCopia.estado === 'erro') {
+      situacaoTextos = 'textos ERRO ' + textosCopia.detalhe;
+      okTextos = false;
+      problemas++;
+    } else {
+      const shaTextosCopia = sha256(textosCopia.bytes);
+      if (shaTextosCopia === TEXTO_SHA) {
+        situacaoTextos = 'textos em dia (' + textosCopia.bytes.length + ' B)';
+      } else {
+        situacaoTextos = 'textos ATRASADO (' + textosCopia.bytes.length + ' B, canonico ' + TEXTO_TAMANHO + ' B)';
+        okTextos = false;
+        problemas++;
+      }
+    }
+    linhas.push({ repositorio: cliente.repositorio, branch: cliente.branch, situacao: situacaoTextos, ok: okTextos });
+  }
 }
 
 // relatorio
