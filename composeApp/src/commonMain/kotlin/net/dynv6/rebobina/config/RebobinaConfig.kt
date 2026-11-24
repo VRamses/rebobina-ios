@@ -10,11 +10,11 @@ package net.dynv6.rebobina.config
  * O Info.plist do iosApp tem a liberacao de HTTP local em NSAppTransportSecurity.
  */
 object RebobinaConfig {
-    /** Jellyfin do acervo, HTTP puro, rede local. */
-    const val JELLYFIN_BASE_URL: String = "http://192.168.18.9:8096"
+    /** Jellyfin do acervo, HTTP puro, rede local. O 192.168.18.9 era o PC; o acervo mora no servidor. */
+    const val JELLYFIN_BASE_URL: String = "http://192.168.18.99:8096"
 
     /** Catalogo proprio do Rebobina (filmes, series, animes, novelas). */
-    const val CATALOGO_BASE_URL: String = "http://192.168.18.9:8899"
+    const val CATALOGO_BASE_URL: String = "http://192.168.18.99:8899"
 
     /**
      * Chave de API do Jellyfin, vazia de proposito.

@@ -20,7 +20,9 @@ import net.dynv6.rebobina.config.RebobinaConfig
  * iosMain, entao o ATS do Info.plist vale para todas as chamadas, inclusive as imagens. No
  * Android o alvo existe so para o modulo compilar, sem motor declarado nesta rodada.
  *
- * Autenticacao: cabecalho `X-Emby-Token`, que e o que o Jellyfin 10.9 aceita em GET. A chave
+ * Autenticacao: cabecalho `Authorization` com o formato do proprio Jellyfin. O
+ * `X-Emby-Token` que ficava aqui voltava 401 no servidor do Rebobina mesmo com a chave certa
+ * (medido em 24/11/2026; o `Authorization` responde 200). A chave
  * vem de Ajustes, nunca do repositorio. A imagem leva `api_key` na query porque quem baixa o
  * byte e este mesmo cliente, com o mesmo cabecalho; a query fica para o caso de depuracao no
  * navegador do Mac.
@@ -37,12 +39,17 @@ internal class JellyfinApi(
 
     private fun url(caminho: String): String = base + caminho
 
+    /** Cabecalho que o Jellyfin reconhece. O proxy da 8096 le este e ignora o `X-Emby-Token`. */
+    private fun cabecalhoDaChave(): String =
+        "MediaBrowser Client=\"Rebobina iOS\", Device=\"iOS\", DeviceId=\"rebobina-ios\", " +
+            "Version=\"1.0\", Token=\"$chave\""
+
     private suspend inline fun <reified T> pegar(
         caminho: String,
         parametros: List<Pair<String, Any?>> = emptyList(),
     ): T {
         val resposta: HttpResponse = cliente.get(url(caminho)) {
-            if (chave.isNotEmpty()) header("X-Emby-Token", chave)
+            if (chave.isNotEmpty()) header("Authorization", cabecalhoDaChave())
             parametros.forEach { (nome, valor) ->
                 if (valor != null) parameter(nome, valor)
             }
@@ -145,7 +152,7 @@ internal class JellyfinApi(
 
     suspend fun bytes(url: String): ByteArray {
         val resposta = cliente.get(url) {
-            if (chave.isNotEmpty()) header("X-Emby-Token", chave)
+            if (chave.isNotEmpty()) header("Authorization", cabecalhoDaChave())
         }
         conferirStatus(resposta, "imagem")
         return resposta.body<ByteArray>()
