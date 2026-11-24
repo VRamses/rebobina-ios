@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.experimental.ExperimentalNativeApi::class, kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package net.dynv6.rebobina
 
 import androidx.compose.ui.window.ComposeUIViewController
@@ -55,7 +57,6 @@ private fun consumirErroGravado(): String? {
 private fun telaDeErro(texto: String): UIViewController {
     val controlador = UIViewController(nibName = null, bundle = null)
     val campo = UITextView(frame = UIScreen.mainScreen.bounds)
-    campo.editable = false
     campo.font = UIFont.systemFontOfSize(11.0)
     campo.text = "\n\nRebobina: erro na abertura anterior\n\n" + texto
     controlador.view = campo
