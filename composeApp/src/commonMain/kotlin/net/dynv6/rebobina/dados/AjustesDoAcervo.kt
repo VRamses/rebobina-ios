@@ -25,7 +25,17 @@ class AjustesDoAcervo {
         chave = salvo.chave
     }
 
-    val enderecoEfetivo: String get() = endereco.trim()
+    /**
+     * Endereco pronto para uso. Quem digita so o IP e a porta nao deveria levar erro de URL
+     * nem precisar lembrar do esquema: completa com `http`, que e o que o servidor usa na
+     * rede local. Barra sobrando no fim tambem sai.
+     */
+    val enderecoEfetivo: String
+        get() {
+            val bruto = endereco.trim().trimEnd('/')
+            if (bruto.isEmpty()) return ""
+            return if (bruto.startsWith("http://") || bruto.startsWith("https://")) bruto else "http://$bruto"
+        }
     val chaveEfetiva: String get() = chave.trim()
 
     fun salvar() {
