@@ -1,6 +1,6 @@
 name: Prova AVFoundation
 
-# Temporario: lista os membros que a platform lib do AVFoundation realmente expoe em AVPlayer.
+# Temporario: lista os membros que a platform lib do AVFoundation expoe em AVPlayer.
 
 on:
   workflow_dispatch:
@@ -25,41 +25,30 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Baixar a distribuicao Kotlin/Native do projeto
+      - name: Baixar a distribuicao Kotlin/Native
         run: ./gradlew -q :composeApp:downloadKotlinNativeDistribution --console=plain
 
-      - name: Achar a platform lib do AVFoundation
+      - name: Conteudo do klib do AVFoundation
         run: |
-          set -euo pipefail
+          set -uo pipefail
           K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
-          echo "K=$K"
-          echo "--- klib ---"
-          ls "$K/klib"
-          echo "--- klib/platform ---"
-          ls "$K/klib/platform" | head -20
-          echo "--- candidatos AVFoundation ---"
-          find "$K/klib" -maxdepth 3 -name "*AVFoundation*" | head -10
-
-      - name: Membros de AVPlayer
-        run: |
-          set -euo pipefail
-          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
-          LIB="$(find "$K/klib" -maxdepth 3 -name "platform.AVFoundation*" | head -1)"
+          LIB="$K/klib/platform/ios_arm64/org.jetbrains.kotlin.native.platform.AVFoundation"
           echo "LIB=$LIB"
-          "$K/bin/klib" contents "$LIB" > /tmp/av.txt 2>&1 || true
+          ls "$LIB" || true
+          "$K/bin/klib" contents "$LIB" > /tmp/av.txt 2>&1
+          echo "codigo de saida do klib: $?"
           echo "linhas: $(wc -l < /tmp/av.txt)"
-          echo "--- ocorrencias de AVPlayer ---"
-          grep -n "AVPlayer" /tmp/av.txt | head -30
-          echo "--- bloco da classe AVPlayer ---"
-          awk '/class AVPlayer([ :]|$)/{f=1} f{print; c++} c>70{exit}' /tmp/av.txt
-          echo "--- membros procurados ---"
-          grep -oE "addPeriodicTimeObserverForInterval|removeTimeObserver|seekToTime|currentItem|play|pause|rate" /tmp/av.txt | sort | uniq -c
-
-      - name: Procurar AVPlayer em outros klibs
-        run: |
-          set -euo pipefail
-          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
-          for LIB in "$K"/klib/platform/ios_*/*AV*; do
-            echo "== $LIB"
-            "$K/bin/klib" contents "$LIB" 2>/dev/null | grep -cE "addPeriodicTimeObserverForInterval|Unresolved" || true
+          echo "--- primeiras linhas ---"
+          head -6 /tmp/av.txt
+          echo "--- contagem ---"
+          for t in "class AVPlayer" "addPeriodicTimeObserverForInterval" "removeTimeObserver" "seekToTime" "currentItem" "fun play" "fun pause" "fun rate"; do
+            echo "$t => $(grep -c "$t" /tmp/av.txt)"
           done
+          echo "--- janela do texto onde aparece AVPlayer ---"
+          N=$(grep -n "AVPlayer" /tmp/av.txt | head -1 | cut -d: -f1)
+          echo "primeira ocorrencia na linha: ${N:-nenhuma}"
+          if [ -n "${N:-}" ]; then
+            sed -n "$((N>5 ? N-3 : 1)),$((N+60))p" /tmp/av.txt
+          fi
+          echo "--- membros procurados no arquivo inteiro ---"
+          grep -oE "addPeriodicTimeObserverForInterval|removeTimeObserver|seekToTime|currentItem|play|pause|rate" /tmp/av.txt | sort | uniq -c || true
