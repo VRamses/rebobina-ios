@@ -9,6 +9,7 @@ import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItem
 import platform.AVFoundation.addPeriodicTimeObserverForInterval
 import platform.AVFoundation.currentItem
+import platform.AVFoundation.duration
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
 import platform.AVFoundation.removeTimeObserver
@@ -66,7 +67,7 @@ internal actual object PlayerNativo {
                         fechar()
                     } else {
                         val posicao = CMTimeGetSeconds(tempo)
-                        val duracao = player.currentItem()?.duration?.let { CMTimeGetSeconds(it) } ?: 0.0
+                        val duracao = player.currentItem()?.duration()?.let { CMTimeGetSeconds(it) } ?: 0.0
                         if (!posicao.isNaN() && !duracao.isNaN() && posicao > 0.0 && duracao > 0.0) {
                             aoSalvar(posicao, duracao)
                         }
