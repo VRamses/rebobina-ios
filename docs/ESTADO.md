@@ -1,6 +1,45 @@
 # Estado do Rebobina para iPhone
 
-Última atualização: 23/11/2026. Repositório: <https://github.com/VRamses/rebobina-ios> (privado).
+Última atualização: 25/11/2026. Repositório: <https://github.com/VRamses/rebobina-ios> (privado).
+
+## Rodada de 24 e 25/11/2026: o cliente fala o catálogo próprio
+
+O app deixou de falar Jellyfin. Toda chamada agora vai para o `catalogo-servico` na porta 8899 do
+servidor, em HTTP puro: `/catalogo` (fileiras e chips do Início), `/catalogo/item/<id>` (ficha),
+`/catalogo/episodios?serie=`, `/catalogo/busca`, `/progresso` (ler e gravar) e `/preparar` mais
+`/mp4` para o vídeo. `JellyfinApi.kt` e `JellyfinDtos.kt` foram apagados, e a aba Canais também: o
+serviço de catálogo não tem canal nem guia de programação, então a aba não tinha de onde tirar
+dado.
+
+Telas reescritas: Início com as fileiras do servidor e os chips de dois níveis, ficha com sinopse,
+nota e lista de episódios por temporada, busca com espera de 400 ms e mínimo de 2 letras, ajustes
+só com endereço (o catálogo não pede chave) e player novo. O player pergunta o estado do preparo a
+cada 2 s, mostra o progresso real da conversão, abre `AVPlayerViewController` em tela cheia quando
+o arquivo fica pronto, grava a posição a cada 5 s e fecha sozinho quando o usuário dispensa a tela
+pela alça do iOS.
+
+Provas desta rodada, todas feitas nesta máquina (Windows, sem Mac), no commit `ea90896`:
+
+| # | o que | evidência |
+|---|---|---|
+| 1 | `commonMain` compila | `gradlew.bat :composeApp:compileAndroidMain` sem erro, 25/11/2026 |
+| 2 | As duas travas passam | `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` e `trava dos tokens: ok, versao 1.1.0, sha256 622f1495f876...` |
+| 3 | O servidor entrega o que a ficha precisa | `/catalogo/item/41469a386a180fcd61fd765c541e3176` devolve 200 com "Duna: Parte Dois", tmdb `693134`, `duracaoMin 166`; id inválido devolve 404 `{"erro":"item invalido"}` |
+| 4 | Episódios vêm com sinopse | `/catalogo/episodios?serie=d192436aec821c9592f3c296f26f4e00` (Dark Matter) devolve 39 itens, sinopse nos 39 e `duracaoMin` em nenhum: é lacuna do acervo, não do mapeamento |
+| 5 | O arquivo que o player abre toca | Duna: Parte Dois preparado em 946 s, 30.669.192.037 bytes em cache, `206` com Range, `Duration 02:45:48`, `hevc Main 10 hvc1 3840x1606`, áudio `aac LC 48 kHz` |
+
+**O que não está provado:** o código de `iosMain` nunca foi compilado. Esta máquina não tem
+toolchain Kotlin/Native (não existe `~/.konan`) e o alvo iOS só compila em macOS. O que dá para
+afirmar é que `commonMain` compila inteiro, e é ali que está quase toda a lógica; `PlayerNativo.ios.kt`
+e as duas linhas novas de `MainViewController.kt` seguem a API do AVFoundation como o Kotlin/Native
+a expõe e só serão conferidos no primeiro build do runner.
+
+**O build do IPA está bloqueado por cobrança, não por código.** O run 45522164407 (commit
+`ea90896`, 25/11/2026 00:57 UTC) falhou em 5 s sem executar passo nenhum, com a anotação do GitHub:
+"The job was not started because recent account payments have failed or your spending limit needs
+to be increased". O último run que chegou a rodar foi o 45488613486, `success` em 10m54s, e ele
+compilou o commit anterior, não este: consumiu o que restava da cota de macOS. Sem cobrança
+liberada, não sai IPA novo até a cota virar, em 01/12/2026.
 
 ## Se o app não abrir no iPhone, leia isto primeiro
 

@@ -6,25 +6,36 @@ Compose Multiplatform e projeto Xcode. O IPA sai sem assinatura do GitHub Action
 
 - Bundle id: `net.dynv6.rebobina.ios`
 - Nome na tela do iPhone: Rebobina
-- Servidor do acervo: `http://192.168.18.9:8096` (Jellyfin, HTTP, rede local)
-- Catálogo: `http://192.168.18.9:8899`
+- Servidor do catálogo: `http://servidor.tail056d02.ts.net:8899` (HTTP, pela tailnet). Na rede
+  local o mesmo serviço responde em `http://192.168.18.99:8899`
+- Endereço configurável em Ajustes; o padrão é o da tailnet
 - Versão do app: arquivo `rebobina.version` na raiz
 
 ## Estado atual (leia antes de baixar)
 
-A rodada de 23/11/2026 saiu do placeholder: o app agora tem as cinco telas do Android
-(Início, Ficha, Canais, Downloads e Busca) mais Ajustes, desenhadas só com os tokens
-gerados, navegáveis pela barra inferior, com as duas faixas de layout do Android (celular
-quando `largura < 600 dp` ou `altura < 480 dp`) e dados reais do Jellyfin por um cliente
-Ktor mínimo. O player fica para a próxima rodada, e os botões de assistir e de baixar
-declaram isso em vez de fingir reprodução. `ui/TemaPlaceholder.kt` foi apagado.
+A rodada de 24 e 25/11/2026 trocou o Jellyfin pelo serviço de catálogo próprio e trouxe o player
+de verdade. O app fala só com a 8899: `/catalogo` para as fileiras e chips do Início,
+`/catalogo/item` para a ficha, `/catalogo/episodios` para os episódios, `/catalogo/busca` para a
+busca, `/progresso` para retomar de onde parou e `/preparar` mais `/mp4` para o vídeo, que o
+servidor converte em MP4 porque o AVPlayer não abre Matroska.
+
+As abas são Início, Busca, Downloads e Ajustes. Canais saiu: o serviço de catálogo não tem canal
+nem guia de programação. Ajustes ficou só com o endereço, porque o catálogo não pede chave. O
+player abre o `AVPlayerViewController` em tela cheia quando o arquivo fica pronto, grava a
+posição a cada 5 s e fecha sozinho quando a tela é dispensada pela alça do iOS.
+
+Provado nesta rodada, no commit `ea90896`: `commonMain` compila pela tarefa
+`:composeApp:compileAndroidMain`, as duas travas passam e o servidor responde o que cada tela
+pede. **Não provado:** `iosMain` não foi compilado, porque não há toolchain Kotlin/Native nesta
+máquina e o alvo iOS só compila em macOS, e nenhum IPA desta rodada existe: o GitHub recusa o
+build por cobrança. Detalhe e evidência em [docs/ESTADO.md](docs/ESTADO.md).
 
 Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) continuam
 copiados do `rebobina-servidor` na versão 1.1.0, com o Kotlin deles gerado e travado no
 build e no CI. A camada que liga tela e token mora em `ui/base/`, e uma trava local
 (`scripts/conferir-desenho.mjs`) reprova cor ou tamanho escrito à mão em tela. Detalhe nas
 seções [Os tokens de desenho](#os-tokens-de-desenho) e
-[As cinco telas e a camada de desenho](#as-cinco-telas-e-a-camada-de-desenho).
+[As telas e a camada de desenho](#as-telas-e-a-camada-de-desenho).
 
 O build do IPA já foi provado: o run #9 (id 45166068336) gerou o artefato
 `rebobina-ios-ipa-9` com `Rebobina.ipa` de 9.170.102 bytes (8,75 MiB), sha256
@@ -42,7 +53,7 @@ ou 50 se o GitHub arredondar o job para cima ao faturar. O `Info.plist` de dentr
 dele não foi aberto nesta rodada; o do run #10 dizia `MinimumOSVersion 17.0`. O passo extra do
 CI provou que o mesmo `commonMain` compila também para Android: o run #11 mostra
 `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` e `BUILD SUCCESSFUL in 9s`. O que
-ele **não** prova é a tela desenhada nem a chamada ao Jellyfin em execução: só um iPhone
+ele **não** prova é a tela desenhada nem a chamada ao servidor em execução: só um iPhone
 abrindo o app prova isso.
 
 O IPA cresceu de 7.526.950 bytes (artefato do run #4) para 9.106.918 no run #5 e 9.121.985 no
@@ -217,28 +228,29 @@ rebobina.version                          versão do app (uma fonte só)
 composeApp/                               módulo Kotlin Multiplatform
   build.gradle.kts                        alvos iosArm64, iosSimulatorArm64 e Android
   src/commonMain/kotlin/net/dynv6/rebobina/
-    App.kt                                navegação: barra inferior, ficha e Ajustes
-    config/RebobinaConfig.kt              único lugar com o endereço do servidor
-    dados/Acervo.kt                       leitura do Jellyfin traduzida para a tela
+    App.kt                                navegação: quatro abas, ficha e player
+    config/RebobinaConfig.kt              único lugar com o endereço padrão do servidor
+    dados/Acervo.kt                       catálogo traduzido para as telas
     dados/AcervoModelos.kt                modelos que as telas desenham
-    dados/JellyfinApi.kt                  cliente Ktor, um endpoint por função
-    dados/JellyfinDtos.kt                 DTOs em PascalCase, como o servidor responde
+    dados/CatalogoApi.kt                  cliente Ktor do catálogo (8899)
+    dados/CatalogoDtos.kt                 DTOs em camelCase, como o serviço responde
     dados/Imagens.kt                      cache de capa em memória (80 imagens)
-    dados/AjustesDoAcervo.kt              endereço e chave em memória, com salvar
+    dados/AjustesDoAcervo.kt              endereço em memória, com salvar
     dados/Persistencia.kt                 expect/actual dos ajustes salvos
     Plataforma.kt                         expect do nome da plataforma
+    player/PlayerNativo.kt                expect do player: abrir, fechar, está aberto
     ui/base/ReboTokens.kt                 apelidos dos tokens e tradução de cor por nome
     ui/base/ReboAdaptativo.kt             faixa celular/tablet e colunas da grade
     ui/base/ReboComponentes.kt            botão, campo, cartão, grade, abas, imagem
     ui/base/ReboEstado.kt                 carregando, falha e vazio com ReboTextos
     ui/base/ReboTema.kt                   MaterialTheme escuro mapeado nos tokens
     ui/base/ReboRotulos.kt                rótulos que o JSON canônico não publica
-    ui/telas/TelaInicio.kt                trilho e grade do acervo
-    ui/telas/TelaFicha.kt                 ficha com abas de episódios, elenco e similares
-    ui/telas/TelaCanais.kt                grade de canais ao vivo
-    ui/telas/TelaBusca.kt                 busca com atraso de 350 ms e 2 caracteres
+    ui/telas/TelaInicio.kt                fileiras do servidor, chips e grade do filtro
+    ui/telas/TelaFicha.kt                 capa, sinopse, nota e episódios por temporada
+    ui/telas/TelaBusca.kt                 busca com atraso de 400 ms e 2 caracteres
+    ui/telas/TelaPlayer.kt                preparo, progresso e abertura do AVPlayer
     ui/telas/TelaDownloads.kt             fila vazia declarada, sem baixar de verdade
-    ui/telas/TelaAjustes.kt               endereço, chave e teste de conexão
+    ui/telas/TelaAjustes.kt               endereço e teste de conexão
     ui/tokens/ReboTokensGerado.kt         tokens de desenho, gerado (não editar à mão)
     ui/tokens/ReboTextos.kt               textos de estado e selo, gerado (não editar à mão)
   src/commonTest/kotlin/net/dynv6/rebobina/ui/base/
@@ -246,10 +258,12 @@ composeApp/                               módulo Kotlin Multiplatform
   src/androidMain/kotlin/net/dynv6/rebobina/
     Plataforma.android.kt                 nome da plataforma
     dados/Plataforma.android.kt           cliente sem motor e ajustes em memória
+    player/PlayerNativo.android.kt        player vazio: vídeo é do app Android
   src/iosMain/kotlin/net/dynv6/rebobina/
-    MainViewController.kt                 ponte Kotlin para o Swift
+    MainViewController.kt                 ponte Kotlin para o Swift, guarda a raiz do app
     Plataforma.ios.kt                     nome da plataforma
     dados/Plataforma.ios.kt               cliente Darwin e ajustes no NSUserDefaults
+    player/PlayerNativo.ios.kt            AVPlayerViewController em tela cheia
 design/tokens/                            cópia da fonte da verdade do desenho
   rebobina-tokens.json                    o JSON, byte a byte do rebobina-servidor
   rebobina-tokens.sha256                  sha256 do JSON, a trava da cópia
@@ -337,20 +351,20 @@ A tela agora consome esses objetos: nenhuma tela de `ui/telas` escreve cor, tama
 ou `.dp`, e o que o JSON não publica (proporção de capa, alfa de véu, espessura de anel,
 texto de rótulo) está declarado em um lugar só, `ui/base/ReboTokens.kt` e
 `ui/base/ReboRotulos.kt`, com o motivo escrito. Detalhe na seção
-[As cinco telas e a camada de desenho](#as-cinco-telas-e-a-camada-de-desenho).
+[As telas e a camada de desenho](#as-telas-e-a-camada-de-desenho).
 
-## As cinco telas e a camada de desenho
+## As telas e a camada de desenho
 
 A estrutura é a mesma do Android (commit `9ca65241a`), para as duas telas olharem o mesmo
 desenho:
 
 | tela | arquivo | o que desenha | dado |
 |---|---|---|---|
-| Início | `ui/telas/TelaInicio.kt` | palavra do app, usuário logado, trilho de continuar assistindo, grade de adicionados recentemente | `/Users/{id}/Items` com `Filters=IsResumable` e a mesma rota com `SortBy=DateCreated` |
-| Ficha | `ui/telas/TelaFicha.kt` | fundo, capa, título, meta, sinopse, abas Episódios / Elenco / Similares | `/Users/{id}/Items/{itemId}`, `/Episodes` e `/Similar` |
-| Canais | `ui/telas/TelaCanais.kt` | grade de canais ao vivo com selo e programa atual | `/LiveTv/Channels` |
-| Busca | `ui/telas/TelaBusca.kt` | campo, sugestões e resultados em linha | `/Users/{id}/Items` com `SearchTerm`, depois de 350 ms e 2 caracteres |
-| Ajustes | `ui/telas/TelaAjustes.kt` | endereço e chave do servidor, salvar e testar conexão | `/Users`, só no botão de testar |
+| Início | `ui/telas/TelaInicio.kt` | palavra do app, avatar, chips de gênero e de serviço, fileiras do servidor e grade do filtro | `/catalogo`, depois `/catalogo/itens?filtro=<chip>` |
+| Ficha | `ui/telas/TelaFicha.kt` | capa, título, meta, nota, gêneros, sinopse, botão assistir e episódios por temporada | `/catalogo/item/<id>`, `/catalogo/episodios?serie=` e `/progresso/item/<tmdb>` |
+| Player | `ui/telas/TelaPlayer.kt` | progresso real do preparo, depois o vídeo em tela cheia | `/preparar/<tmdb>`, `/mp4/<chave>` e `POST /progresso` |
+| Busca | `ui/telas/TelaBusca.kt` | campo e resultados em grade | `/catalogo/busca?q=`, depois de 400 ms e 2 caracteres |
+| Ajustes | `ui/telas/TelaAjustes.kt` | endereço do servidor, salvar e testar conexão | `/catalogo`, só no botão de testar |
 | Downloads | `ui/telas/TelaDownloads.kt` | fila vazia declarada, sem inventar download | nenhum: o app não baixa nesta rodada |
 
 A camada de desenho, toda em `commonMain/ui/base/`:
@@ -381,9 +395,9 @@ Limites declarados desta rodada, sem invenção de dado:
 - o tema claro (`ReboColorClaro`) existe no gerado e não é usado: esta rodada é escura só;
 - as imagens de capa são buscadas em 300 px e as de fundo em 1200 px, valores escolhidos
   aqui e não vindos do JSON: o token de tamanho de arte não existe;
-- o ATS do `Info.plist` libera `NSAllowsArbitraryLoads` para o Jellyfin em HTTP na rede
-  local. É risco aceito de sideload, não recomendação: o IPA é sem assinatura e a chave do
-  servidor fica no `NSUserDefaults` do aparelho, nunca no repositório;
+- o ATS do `Info.plist` libera `NSAllowsArbitraryLoads` para o catálogo e o vídeo em HTTP na
+  tailnet e na rede local. É risco aceito de sideload, não recomendação: o IPA é sem assinatura.
+  Nenhuma chave é guardada no aparelho, porque o serviço de catálogo não pede chave;
 - os 7 testes de `ReboAdaptativoTest` existem e nunca rodaram: o CI compila
   `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`, não a suíte, e esta
   máquina não tem JDK nem Gradle para rodar `iosSimulatorArm64Test`;
@@ -411,9 +425,15 @@ dos dois lados, que esta rodada não tem.
 
 ## Trocar o endereço do servidor
 
-Um lugar só: `composeApp/src/commonMain/kotlin/net/dynv6/rebobina/config/RebobinaConfig.kt`.
-O `Info.plist` tem a liberação de HTTP para rede local, que não precisa mudar se o IP mudar,
-porque `NSAllowsLocalNetworking` cobre a rede local inteira.
+No aparelho, sem recompilar: aba **Ajustes**, campo de endereço, **Salvar**. O valor vai para o
+`NSUserDefaults` com a chave `rebobina.endereco` e passa a valer na hora, porque o `Acervo` é
+recriado quando o endereço muda. **Testar conexão** faz um `GET /catalogo` no endereço digitado e
+mostra o nome do usuário do acervo, ou o erro.
+
+O padrão, usado quando não há nada salvo, fica em
+`composeApp/src/commonMain/kotlin/net/dynv6/rebobina/config/RebobinaConfig.kt`:
+`http://servidor.tail056d02.ts.net:8899`. O `Info.plist` tem a liberação de HTTP, que não precisa
+mudar se o IP mudar.
 
 ## Rodar no Mac, se precisar
 
