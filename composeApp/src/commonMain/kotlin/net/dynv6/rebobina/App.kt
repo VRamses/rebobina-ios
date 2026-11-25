@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,38 +21,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import net.dynv6.rebobina.dados.Acervo
 import net.dynv6.rebobina.dados.AjustesDoAcervo
-import net.dynv6.rebobina.dados.EstadoTela
+import net.dynv6.rebobina.dados.AlvoDoPlayer
 import net.dynv6.rebobina.dados.Imagens
-import net.dynv6.rebobina.dados.UsuarioDoAcervo
+import net.dynv6.rebobina.player.PlayerNativo
 import net.dynv6.rebobina.ui.base.ReboAdaptativo
 import net.dynv6.rebobina.ui.base.ReboDimensao
-import net.dynv6.rebobina.ui.base.ReboEstadoCarregando
-import net.dynv6.rebobina.ui.base.ReboEstadoFalha
-import net.dynv6.rebobina.ui.base.ReboEstadoVazio
 import net.dynv6.rebobina.ui.base.ReboFaixa
 import net.dynv6.rebobina.ui.base.ReboFio
 import net.dynv6.rebobina.ui.base.ReboItemDeAba
-import net.dynv6.rebobina.ui.base.ReboRotulos
 import net.dynv6.rebobina.ui.base.ReboTema
 import net.dynv6.rebobina.ui.telas.TelaAjustes
 import net.dynv6.rebobina.ui.telas.TelaBusca
-import net.dynv6.rebobina.ui.telas.TelaCanais
 import net.dynv6.rebobina.ui.telas.TelaDownloads
 import net.dynv6.rebobina.ui.telas.TelaFicha
 import net.dynv6.rebobina.ui.telas.TelaInicio
+import net.dynv6.rebobina.ui.telas.TelaPlayer
 import net.dynv6.rebobina.ui.tokens.ReboColor
 import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
- * Raiz do app iOS desta rodada: tema, faixa de layout, cinco telas e a ficha.
+ * Raiz do app iOS: tema, faixa de layout, quatro abas, ficha e player.
  *
- * A resolucao do usuario acontece aqui, uma vez: `Acervo.usuarios()` decide se o app abre a
- * navegacao ou se mostra falha, e a tela de Ajustes fica a um toque do erro, porque o caso
- * mais comum de o acervo nao abrir e endereco trocado ou servidor fora do ar.
+ * Endereco do servidor e a unica configuracao que existe, e ela vive em `AjustesDoAcervo`. O
+ * app nao resolve usuario na abertura: o catalogo ja responde no primeiro `/catalogo`, e se o
+ * servidor estiver fora do ar quem conta isso e a tela do Inicio, com botao para os Ajustes. Foi
+ * de proposito, porque travar o app inteiro numa tela de erro deixava o usuario sem acesso ao
+ * campo de endereco justamente quando precisava dele.
  *
- * A barra inferior some quando a ficha esta aberta: a ficha e uma tela de detalhe com "Voltar",
- * nao uma sexta aba. O player nao existe nesta rodada; a ficha diz isso em vez de fingir tocar
- * o arquivo.
+ * A barra inferior some na ficha e no player: sao telas de detalhe com "Voltar", nao abas.
  */
 @Composable
 fun App() {
@@ -73,105 +69,76 @@ fun App() {
 
 private enum class Aba(val rotulo: String) {
     Inicio(ReboTextos.Interface.Comum.Inicio),
-    Canais(ReboRotulos.ABA_CANAIS),
+    Busca(ReboTextos.Interface.Comum.Buscar),
     Downloads(ReboTextos.Interface.Comum.Downloads),
-    Busca(ReboRotulos.ABA_BUSCA),
     Ajustes(ReboTextos.Interface.Comum.Ajustes),
 }
 
 @Composable
 private fun ReboRaiz(ajustes: AjustesDoAcervo, faixa: ReboFaixa) {
-    val acervo = remember(ajustes.enderecoEfetivo, ajustes.chaveEfetiva) {
-        Acervo(endereco = ajustes.enderecoEfetivo, chave = ajustes.chaveEfetiva)
-    }
+    val acervo = remember(ajustes.enderecoEfetivo) { Acervo(ajustes.enderecoEfetivo) }
     SideEffect {
         Imagens.carregar = { url -> acervo.bytes(url) }
     }
 
     var aba by remember { mutableStateOf(Aba.Inicio) }
     var ficha by remember { mutableStateOf<String?>(null) }
-    var tentativa by remember(acervo) { mutableStateOf(0) }
-    var usuarios by remember(acervo) {
-        mutableStateOf<EstadoTela<List<UsuarioDoAcervo>>>(EstadoTela.Carregando)
-    }
-    LaunchedEffect(acervo, tentativa) {
-        usuarios = EstadoTela.Carregando
-        usuarios = acervo.usuarios()
-    }
-
-    val usuario = (usuarios as? EstadoTela.Pronto)?.dado?.firstOrNull()
-    val falha = usuarios as? EstadoTela.Falha
+    var player by remember { mutableStateOf<AlvoDoPlayer?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            val alvo = player
             val aberta = ficha
             when {
-                aberta != null && usuario != null -> TelaFicha(
+                alvo != null -> TelaPlayer(
                     acervo = acervo,
-                    usuarioId = usuario.id,
+                    alvo = alvo,
+                    faixa = faixa,
+                    aoVoltar = { player = null },
+                )
+                aberta != null -> TelaFicha(
+                    acervo = acervo,
                     itemId = aberta,
                     faixa = faixa,
                     aoVoltar = { ficha = null },
-                    aoAbrirFicha = { ficha = it },
+                    aoAssistir = { player = it },
                 )
-                aberta != null -> LaunchedEffect(aberta) { ficha = null }
-                aba == Aba.Ajustes -> TelaAjustes(
-                    ajustes = ajustes,
-                    faixa = faixa,
-                    aoVoltar = { aba = Aba.Inicio },
-                )
-                usuario != null -> when (aba) {
+                else -> when (aba) {
                     Aba.Inicio -> TelaInicio(
                         acervo = acervo,
-                        usuarioId = usuario.id,
-                        nomeDoUsuario = usuario.nome,
                         faixa = faixa,
                         aoAbrirFicha = { ficha = it },
                         aoAbrirAjustes = { aba = Aba.Ajustes },
                     )
-                    Aba.Canais -> TelaCanais(
+                    Aba.Busca -> TelaBusca(
                         acervo = acervo,
-                        usuarioId = usuario.id,
                         faixa = faixa,
-                        aoAbrirAjustes = { aba = Aba.Ajustes },
+                        aoAbrirFicha = { ficha = it },
                     )
                     Aba.Downloads -> TelaDownloads(
                         faixa = faixa,
                         aoVoltarAoCatalogo = { aba = Aba.Inicio },
                     )
-                    Aba.Busca -> TelaBusca(
-                        acervo = acervo,
-                        usuarioId = usuario.id,
+                    Aba.Ajustes -> TelaAjustes(
+                        ajustes = ajustes,
                         faixa = faixa,
-                        aoAbrirFicha = { ficha = it },
-                        aoAbrirAjustes = { aba = Aba.Ajustes },
+                        aoSalvar = { aba = Aba.Inicio },
                     )
-                    Aba.Ajustes -> Unit
                 }
-                falha != null -> ReboEstadoFalha(
-                    detalhe = falha.detalhe,
-                    semRede = falha.semRede,
-                    celular = faixa.celular,
-                    aoTentarDeNovo = { tentativa += 1 },
-                    aoAbrirAjustes = { aba = Aba.Ajustes },
-                )
-                usuarios is EstadoTela.Pronto -> ReboEstadoVazio(
-                    celular = faixa.celular,
-                    aoTocarAcao = { tentativa += 1 },
-                    titulo = ReboRotulos.SEM_USUARIO_TITULO,
-                    corpo = ReboRotulos.SEM_USUARIO_CORPO,
-                    acao = ReboTextos.Estado.Erro.Acao,
-                )
-                else -> ReboEstadoCarregando(faixa.celular)
             }
         }
-        if (ficha == null) {
+        if (player == null && ficha == null) {
             ReboBarraInferior(
                 aba = aba,
                 celular = faixa.celular,
                 aoTrocar = { aba = it },
             )
         }
+    }
+
+    // Sair do app com o video aberto fecharia o audio sem aviso; fechar aqui devolve o controle.
+    DisposableEffect(Unit) {
+        onDispose { PlayerNativo.fechar() }
     }
 }
 

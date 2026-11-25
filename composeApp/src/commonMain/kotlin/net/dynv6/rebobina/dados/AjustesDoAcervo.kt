@@ -6,29 +6,25 @@ import androidx.compose.runtime.setValue
 import net.dynv6.rebobina.config.RebobinaConfig
 
 /**
- * Ajustes do acervo, editaveis na tela de Ajustes.
+ * Ajustes do catalogo, editaveis na tela de Ajustes.
  *
- * O endereco e a chave comecam no que esta guardado no aparelho, senao no padrao de
- * `RebobinaConfig`. A chave nunca e escrita no codigo nem no repositorio: ela existe no
- * aparelho depois que alguem digita na tela de Ajustes.
+ * So o endereco: o cliente do catalogo nao tem login nem chave. Comeca no que esta guardado no
+ * aparelho, senao no padrao de `RebobinaConfig`.
  *
- * `mutableStateOf` porque a tela de Ajustes edita e o `App` recria o `Acervo` quando estes
- * valores mudam.
+ * `mutableStateOf` porque a tela de Ajustes edita e o `App` recria o `Acervo` quando o valor
+ * muda.
  */
 class AjustesDoAcervo {
-    var endereco by mutableStateOf(RebobinaConfig.JELLYFIN_BASE_URL)
-    var chave by mutableStateOf(RebobinaConfig.JELLYFIN_CHAVE_PADRAO)
+    var endereco by mutableStateOf(RebobinaConfig.CATALOGO_BASE_URL)
 
     init {
-        val salvo = lerAjustesSalvos()
-        endereco = salvo.endereco
-        chave = salvo.chave
+        endereco = lerAjustesSalvos().endereco
     }
 
     /**
      * Endereco pronto para uso. Quem digita so o IP e a porta nao deveria levar erro de URL
-     * nem precisar lembrar do esquema: completa com `http`, que e o que o servidor usa na
-     * rede local. Barra sobrando no fim tambem sai.
+     * nem precisar lembrar do esquema: completa com `http`, que e o que o servidor usa.
+     * Barra sobrando no fim tambem sai.
      */
     val enderecoEfetivo: String
         get() {
@@ -36,9 +32,8 @@ class AjustesDoAcervo {
             if (bruto.isEmpty()) return ""
             return if (bruto.startsWith("http://") || bruto.startsWith("https://")) bruto else "http://$bruto"
         }
-    val chaveEfetiva: String get() = chave.trim()
 
     fun salvar() {
-        gravarAjustesSalvos(AjustesSalvos(endereco = enderecoEfetivo, chave = chaveEfetiva))
+        gravarAjustesSalvos(AjustesSalvos(endereco = enderecoEfetivo))
     }
 }

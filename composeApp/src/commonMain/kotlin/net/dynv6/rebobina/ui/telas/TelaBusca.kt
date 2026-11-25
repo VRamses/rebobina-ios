@@ -2,8 +2,8 @@ package net.dynv6.rebobina.ui.telas
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -11,60 +11,58 @@ import kotlinx.coroutines.delay
 import net.dynv6.rebobina.dados.Acervo
 import net.dynv6.rebobina.dados.EstadoTela
 import net.dynv6.rebobina.dados.MidiaCartao
+import net.dynv6.rebobina.ui.base.ReboBotao
+import net.dynv6.rebobina.ui.base.ReboBotaoTom
 import net.dynv6.rebobina.ui.base.ReboCabecalhoTela
 import net.dynv6.rebobina.ui.base.ReboCampo
-import net.dynv6.rebobina.ui.base.ReboChip
 import net.dynv6.rebobina.ui.base.ReboDimensao
 import net.dynv6.rebobina.ui.base.ReboEstadoCarregando
 import net.dynv6.rebobina.ui.base.ReboEstadoFalha
+import net.dynv6.rebobina.ui.base.ReboEstadoVazio
 import net.dynv6.rebobina.ui.base.ReboEstilo
 import net.dynv6.rebobina.ui.base.ReboFaixa
-import net.dynv6.rebobina.ui.base.ReboFio
-import net.dynv6.rebobina.ui.base.ReboLinhaDeMidia
+import net.dynv6.rebobina.ui.base.ReboGradeDeCartoes
 import net.dynv6.rebobina.ui.base.ReboRotulos
+import net.dynv6.rebobina.ui.base.reboColunasCatalogo
 import net.dynv6.rebobina.ui.tokens.ReboColor
 import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
- * Busca: campo, sugestoes e resultados do `/Items?searchTerm=`.
+ * Busca no acervo pelo `/catalogo/busca`.
  *
- * O atraso de 350 ms existe para nao disparar uma requisicao por tecla; e o mesmo tipo de
- * espera que o Android faz com `debounce`. A espera e cancelada quando o termo muda, porque
- * `LaunchedEffect(termo)` reinicia o bloco.
- *
- * Sem rede a tela mostra o estado de falha de `ReboTextos.Estado.SemRede`; sem resultado,
- * mostra a frase de vazio da propria tela, nunca uma lista vazia silenciosa.
+ * Espera 400 ms depois da ultima tecla antes de perguntar, para nao disparar uma chamada por
+ * letra. Termo com menos de duas letras nao busca: com uma letra o servidor devolve meio acervo,
+ * o que nao ajuda ninguem.
  */
 @Composable
 fun TelaBusca(
     acervo: Acervo,
-    usuarioId: String,
     faixa: ReboFaixa,
     aoAbrirFicha: (String) -> Unit,
-    aoAbrirAjustes: () -> Unit,
 ) {
     val celular = faixa.celular
     var termo by remember { mutableStateOf("") }
-    var estado by remember(acervo) { mutableStateOf<EstadoTela<List<MidiaCartao>>?>(null) }
-    var tentativa by remember(acervo) { mutableStateOf(0) }
+    var resultado by remember { mutableStateOf<EstadoTela<List<MidiaCartao>>?>(null) }
+    var tentativa by remember { mutableStateOf(0) }
 
     LaunchedEffect(acervo, termo, tentativa) {
         val limpo = termo.trim()
         if (limpo.length < 2) {
-            estado = null
+            resultado = null
             return@LaunchedEffect
         }
-        estado = EstadoTela.Carregando
-        delay(350)
-        estado = acervo.buscar(usuarioId, limpo)
+        delay(400)
+        resultado = EstadoTela.Carregando
+        resultado = acervo.buscar(limpo)
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(ReboColor.Base)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = ReboDimensao.MargemCelular)
-            .padding(top = ReboDimensao.EspacoN3),
+            .padding(top = ReboDimensao.EspacoN3, bottom = ReboDimensao.EntreSecoes),
     ) {
         ReboCabecalhoTela(titulo = ReboTextos.Interface.Comum.Buscar, celular = celular)
         ReboCampo(
@@ -73,98 +71,49 @@ fun TelaBusca(
             rotulo = ReboRotulos.CAMPO_BUSCA,
             celular = celular,
         )
-        Spacer(Modifier.height(ReboDimensao.EspacoN2))
-        Row(horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2)) {
-            ReboChip(
-                texto = ReboTextos.Interface.Comum.Filmes,
-                ativa = false,
-                aoTocar = { termo = ReboTextos.Interface.Comum.Filmes },
-                celular = celular,
-            )
-            ReboChip(
-                texto = ReboTextos.Interface.Comum.Series,
-                ativa = false,
-                aoTocar = { termo = ReboTextos.Interface.Comum.Series },
-                celular = celular,
-            )
-            ReboChip(
-                texto = ReboRotulos.SUGESTAO_ANIMES,
-                ativa = false,
-                aoTocar = { termo = ReboRotulos.SUGESTAO_ANIMES },
+        if (termo.isNotBlank()) {
+            Spacer(Modifier.height(ReboDimensao.EspacoN2))
+            ReboBotao(
+                texto = ReboRotulos.LIMPAR,
+                aoTocar = { termo = "" },
+                tom = ReboBotaoTom.Discreto,
                 celular = celular,
             )
         }
-        Spacer(Modifier.height(ReboDimensao.EspacoN3))
-        ReboFio()
-
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            when (val atual = estado) {
-                null -> MensagemDeBusca(
-                    texto = ReboRotulos.BUSCA_VAZIA,
+        Spacer(Modifier.height(ReboDimensao.AntesDeSecao))
+        when (val carregado = resultado) {
+            null -> Text(
+                text = ReboRotulos.BUSCA_VAZIA,
+                style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink3),
+            )
+            EstadoTela.Carregando -> ReboEstadoCarregando(celular)
+            is EstadoTela.Falha -> ReboEstadoFalha(
+                detalhe = carregado.detalhe,
+                semRede = carregado.semRede,
+                celular = celular,
+                aoTentarDeNovo = { tentativa += 1 },
+            )
+            is EstadoTela.Pronto -> if (carregado.dado.isEmpty()) {
+                ReboEstadoVazio(
                     celular = celular,
+                    aoTocarAcao = { termo = "" },
+                    titulo = ReboTextos.Estado.Vazio.Titulo,
+                    corpo = ReboRotulos.BUSCA_SEM_RESULTADO,
+                    acao = ReboRotulos.LIMPAR,
                 )
-                EstadoTela.Carregando -> ReboEstadoCarregando(celular)
-                is EstadoTela.Falha -> ReboEstadoFalha(
-                    detalhe = atual.detalhe,
-                    semRede = atual.semRede,
-                    celular = celular,
-                    aoTentarDeNovo = { tentativa += 1 },
-                    aoAbrirAjustes = aoAbrirAjustes,
+            } else {
+                Text(
+                    text = ReboTextos.Interface.Comum.Resultados,
+                    style = ReboEstilo.tituloSecao(celular),
                 )
-                is EstadoTela.Pronto -> ResultadosDaBusca(
-                    resultados = atual.dado,
+                Spacer(Modifier.height(ReboDimensao.EspacoN2))
+                ReboGradeDeCartoes(
+                    itens = carregado.dado,
+                    colunas = reboColunasCatalogo(faixa.larguraDp, faixa.alturaDp),
                     celular = celular,
-                    aoAbrirFicha = aoAbrirFicha,
+                    aoTocar = { midia -> aoAbrirFicha(midia.id) },
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun MensagemDeBusca(texto: String, celular: Boolean) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = ReboDimensao.AntesDeSecao),
-    ) {
-        Text(
-            text = texto,
-            style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink3),
-        )
-    }
-}
-
-@Composable
-private fun ResultadosDaBusca(
-    resultados: List<MidiaCartao>,
-    celular: Boolean,
-    aoAbrirFicha: (String) -> Unit,
-) {
-    if (resultados.isEmpty()) {
-        MensagemDeBusca(texto = ReboRotulos.BUSCA_VAZIA, celular = celular)
-        return
-    }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            top = ReboDimensao.EspacoN3,
-            bottom = ReboDimensao.EntreSecoes,
-        ),
-        verticalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2),
-    ) {
-        item {
-            Text(
-                text = ReboTextos.Interface.Comum.Resultados,
-                style = ReboEstilo.tituloSecao(celular).copy(color = ReboColor.Ink),
-            )
-        }
-        items(resultados, key = { it.id }) { midia ->
-            ReboLinhaDeMidia(
-                midia = midia,
-                celular = celular,
-                aoTocar = { aoAbrirFicha(midia.id) },
-            )
         }
     }
 }

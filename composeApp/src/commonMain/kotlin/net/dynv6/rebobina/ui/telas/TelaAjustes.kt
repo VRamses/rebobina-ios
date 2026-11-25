@@ -11,11 +11,10 @@ import kotlinx.coroutines.launch
 import net.dynv6.rebobina.dados.Acervo
 import net.dynv6.rebobina.dados.AjustesDoAcervo
 import net.dynv6.rebobina.dados.EstadoTela
-import net.dynv6.rebobina.dados.UsuarioDoAcervo
-import net.dynv6.rebobina.ui.base.ReboCabecalhoTela
-import net.dynv6.rebobina.ui.base.ReboCampo
 import net.dynv6.rebobina.ui.base.ReboBotao
 import net.dynv6.rebobina.ui.base.ReboBotaoTom
+import net.dynv6.rebobina.ui.base.ReboCabecalhoTela
+import net.dynv6.rebobina.ui.base.ReboCampo
 import net.dynv6.rebobina.ui.base.ReboDimensao
 import net.dynv6.rebobina.ui.base.ReboEstilo
 import net.dynv6.rebobina.ui.base.ReboFaixa
@@ -25,27 +24,21 @@ import net.dynv6.rebobina.ui.tokens.ReboColor
 import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
- * Ajustes: endereco do servidor Jellyfin e chave de API.
+ * Ajustes: so o endereco do catalogo.
  *
- * A chave fica gravada nos `NSUserDefaults` deste aparelho, nunca no repositorio. O campo da
- * chave e mascarado na tela (`PasswordVisualTransformation`), mas o valor continua em texto
- * puro no armazenamento local: isso e declarado no README como limite desta rodada, nao como
- * seguranca de cofre de chaves.
- *
- * "Testar conexao" cria um `Acervo` novo com o que esta escrito nos campos, chama `/Users` e
- * mostra o nome do primeiro usuario. Se falhar, mostra a frase de falha do `ReboTextos`, com o
- * detalhe do servidor, em vez de dizer que conectou sem ter conectado.
+ * Nao existe campo de chave porque o servico do catalogo nao pede chave. "Testar conexao" monta
+ * um `Acervo` com o endereco escrito, chama `/catalogo` e mostra o nome do usuario do acervo; se
+ * falhar, mostra a frase do erro, nunca um acervo inventado.
  */
 @Composable
 fun TelaAjustes(
     ajustes: AjustesDoAcervo,
     faixa: ReboFaixa,
-    aoVoltar: () -> Unit,
+    aoSalvar: () -> Unit,
 ) {
     val celular = faixa.celular
-    var salvo by remember { mutableStateOf(false) }
-    var teste by remember { mutableStateOf<EstadoTela<List<UsuarioDoAcervo>>?>(null) }
     val escopo = rememberCoroutineScope()
+    var teste by remember { mutableStateOf<EstadoTela<String>?>(null) }
 
     Column(
         modifier = Modifier
@@ -55,43 +48,25 @@ fun TelaAjustes(
             .padding(horizontal = ReboDimensao.MargemCelular)
             .padding(top = ReboDimensao.EspacoN3, bottom = ReboDimensao.EntreSecoes),
     ) {
-        ReboCabecalhoTela(titulo = ReboTextos.Interface.Comum.Ajustes, celular = celular, aoVoltar = aoVoltar)
-        Spacer(Modifier.height(ReboDimensao.EspacoN3))
+        ReboCabecalhoTela(titulo = ReboTextos.Interface.Comum.Ajustes, celular = celular)
         ReboCampo(
             valor = ajustes.endereco,
-            aoMudar = {
-                ajustes.endereco = it
-                salvo = false
-                teste = null
-            },
+            aoMudar = { ajustes.endereco = it },
             rotulo = ReboRotulos.ENDERECO_DO_SERVIDOR,
             celular = celular,
         )
-        Spacer(Modifier.height(ReboDimensao.EspacoN3))
-        ReboCampo(
-            valor = ajustes.chave,
-            aoMudar = {
-                ajustes.chave = it
-                salvo = false
-                teste = null
-            },
-            rotulo = ReboRotulos.CHAVE_DE_API,
-            celular = celular,
-            segredo = true,
-        )
-        Spacer(Modifier.height(ReboDimensao.EspacoN1))
+        Spacer(Modifier.height(ReboDimensao.EspacoN2))
         Text(
-            text = ReboRotulos.CHAVE_FICA_NO_APARELHO,
+            text = ReboRotulos.DICA_ENDERECO,
             style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
         )
-
-        Spacer(Modifier.height(ReboDimensao.AntesDeSecao))
+        Spacer(Modifier.height(ReboDimensao.EspacoN3))
         Row(horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2)) {
             ReboBotao(
                 texto = ReboTextos.Interface.Comum.Salvar,
                 aoTocar = {
                     ajustes.salvar()
-                    salvo = true
+                    aoSalvar()
                 },
                 tom = ReboBotaoTom.Primario,
                 celular = celular,
@@ -99,14 +74,19 @@ fun TelaAjustes(
             ReboBotao(
                 texto = ReboRotulos.TESTAR_CONEXAO,
                 aoTocar = {
-                    val endereco = ajustes.enderecoEfetivo
-                    if (endereco.isBlank()) {
-                        teste = EstadoTela.Falha(ReboRotulos.ENDERECO_VAZIO, semRede = false)
-                    } else {
-                        teste = EstadoTela.Carregando
-                        escopo.launch {
-                            val novo = Acervo(endereco, ajustes.chaveEfetiva)
-                            teste = novo.usuarios()
+                    teste = EstadoTela.Carregando
+                    escopo.launch {
+                        val endereco = ajustes.enderecoEfetivo
+                        teste = if (endereco.isBlank()) {
+                            EstadoTela.Falha(detalhe = ReboRotulos.ENDERECO_VAZIO, semRede = false)
+                        } else {
+                            when (val pagina = Acervo(endereco).inicio()) {
+                                is EstadoTela.Pronto -> EstadoTela.Pronto(
+                                    pagina.dado.nomeDoUsuario.ifBlank { endereco },
+                                )
+                                is EstadoTela.Falha -> pagina
+                                EstadoTela.Carregando -> EstadoTela.Carregando
+                            }
                         }
                     }
                 },
@@ -114,20 +94,17 @@ fun TelaAjustes(
                 celular = celular,
             )
         }
-        if (salvo) {
-            Spacer(Modifier.height(ReboDimensao.EspacoN2))
-            Text(
-                text = ReboRotulos.SALVO,
-                style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ok),
-            )
-        }
+        Spacer(Modifier.height(ReboDimensao.EspacoN2))
+        Text(
+            text = ReboRotulos.SALVO,
+            style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
+        )
+
         when (val resultado = teste) {
-            null -> Unit
             is EstadoTela.Pronto -> {
                 Spacer(Modifier.height(ReboDimensao.EspacoN2))
-                val nomes = resultado.dado.map { it.nome }.distinct()
                 Text(
-                    text = ReboRotulos.CONECTADO_COMO + " " + nomes.joinToString(", "),
+                    text = ReboRotulos.CONECTADO_COMO + " " + resultado.dado,
                     style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ok),
                 )
             }
@@ -145,6 +122,7 @@ fun TelaAjustes(
                     style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
                 )
             }
+            null -> Unit
         }
 
         Spacer(Modifier.height(ReboDimensao.AntesDeSecao))

@@ -1,7 +1,7 @@
 package net.dynv6.rebobina.ui.telas
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,397 +12,392 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import net.dynv6.rebobina.dados.Acervo
+import net.dynv6.rebobina.dados.AlvoDoPlayer
 import net.dynv6.rebobina.dados.EpisodioDaFicha
 import net.dynv6.rebobina.dados.EstadoTela
 import net.dynv6.rebobina.dados.FichaDaMidia
 import net.dynv6.rebobina.dados.FormatoDeTexto
-import net.dynv6.rebobina.dados.MidiaCartao
-import net.dynv6.rebobina.ui.base.ReboAba
+import net.dynv6.rebobina.dados.ProgressoDaMidia
+import net.dynv6.rebobina.ui.base.ReboBarraProgresso
 import net.dynv6.rebobina.ui.base.ReboBotao
 import net.dynv6.rebobina.ui.base.ReboBotaoTom
 import net.dynv6.rebobina.ui.base.ReboCabecalhoTela
+import net.dynv6.rebobina.ui.base.ReboChip
 import net.dynv6.rebobina.ui.base.ReboDimensao
 import net.dynv6.rebobina.ui.base.ReboEstadoCarregando
 import net.dynv6.rebobina.ui.base.ReboEstadoFalha
+import net.dynv6.rebobina.ui.base.ReboEstadoVazio
 import net.dynv6.rebobina.ui.base.ReboEstilo
 import net.dynv6.rebobina.ui.base.ReboFaixa
 import net.dynv6.rebobina.ui.base.ReboFio
-import net.dynv6.rebobina.ui.base.ReboGradeDeCartoes
 import net.dynv6.rebobina.ui.base.ReboImagemRemota
-import net.dynv6.rebobina.ui.base.ReboProporcao
 import net.dynv6.rebobina.ui.base.ReboRotulos
 import net.dynv6.rebobina.ui.base.ReboShape
-import net.dynv6.rebobina.ui.base.reboColunasCatalogo
 import net.dynv6.rebobina.ui.tokens.ReboColor
 import net.dynv6.rebobina.ui.tokens.ReboTextos
 
 /**
- * Ficha da midia: fundo, capa, titulo, meta, sinopse e as abas Episodios / Elenco / Similares,
- * na mesma estrutura do `FichaScreen` do Android.
+ * Ficha de uma midia: capa, dados, sinopse, botao de assistir e, para serie, a lista de episodios.
  *
- * O que esta tela NAO faz, de proposito: tocar o arquivo. O botao de assistir e o de baixar
- * existem para a ficha ficar completa, e os dois mostram a frase declarada
- * `ReboRotulos.PENDENTE_REPRODUTOR` em vez de fingir reproducao. O player e a proxima rodada.
+ * Filme toca o proprio `/preparar/<tmdb>`. Serie nao toca "a serie": toca um episodio, com
+ * `/preparar/tv/<tmdb>/<temporada>/<episodio>`, entao a lista de episodios e o caminho principal
+ * da ficha de serie, e nao um detalhe escondido atras de aba.
  */
 @Composable
 fun TelaFicha(
     acervo: Acervo,
-    usuarioId: String,
     itemId: String,
     faixa: ReboFaixa,
     aoVoltar: () -> Unit,
-    aoAbrirFicha: (String) -> Unit,
+    aoAssistir: (AlvoDoPlayer) -> Unit,
 ) {
-    var estado by remember(acervo, itemId) {
-        mutableStateOf<EstadoTela<FichaDaMidia>>(EstadoTela.Carregando)
-    }
-    var tentativa by remember(acervo, itemId) { mutableStateOf(0) }
+    val celular = faixa.celular
+    var ficha by remember(itemId) { mutableStateOf<EstadoTela<FichaDaMidia>?>(null) }
+    var tentativa by remember(itemId) { mutableStateOf(0) }
+
     LaunchedEffect(acervo, itemId, tentativa) {
-        estado = EstadoTela.Carregando
-        estado = acervo.ficha(usuarioId, itemId)
+        ficha = EstadoTela.Carregando
+        ficha = acervo.ficha(itemId)
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ReboColor.Base),
+            .background(ReboColor.Base)
+            .verticalScroll(rememberScrollState())
+            .padding(top = ReboDimensao.EspacoN3, bottom = ReboDimensao.EntreSecoes),
     ) {
-        Box(modifier = Modifier.padding(horizontal = ReboDimensao.MargemCelular)) {
-            ReboCabecalhoTela(
-                titulo = ReboRotulos.FICHA,
-                celular = faixa.celular,
-                aoVoltar = aoVoltar,
+        ReboCabecalhoTela(
+            titulo = ReboRotulos.FICHA,
+            celular = celular,
+            aoVoltar = aoVoltar,
+            modifier = Modifier.padding(horizontal = ReboDimensao.MargemCelular),
+        )
+        when (val carregada = ficha) {
+            null, EstadoTela.Carregando -> ReboEstadoCarregando(celular)
+            is EstadoTela.Falha -> ReboEstadoFalha(
+                detalhe = carregada.detalhe,
+                semRede = carregada.semRede,
+                celular = celular,
+                aoTentarDeNovo = { tentativa += 1 },
+            )
+            is EstadoTela.Pronto -> ConteudoFicha(
+                acervo = acervo,
+                ficha = carregada.dado,
+                celular = celular,
+                aoAssistir = aoAssistir,
             )
         }
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            when (val atual = estado) {
-                EstadoTela.Carregando -> ReboEstadoCarregando(faixa.celular)
-                is EstadoTela.Falha -> ReboEstadoFalha(
-                    detalhe = atual.detalhe,
-                    semRede = atual.semRede,
-                    celular = faixa.celular,
-                    aoTentarDeNovo = { tentativa += 1 },
-                )
-                is EstadoTela.Pronto -> ConteudoFicha(
-                    ficha = atual.dado,
-                    acervo = acervo,
-                    usuarioId = usuarioId,
-                    faixa = faixa,
-                    aoAbrirFicha = aoAbrirFicha,
-                )
-            }
-        }
     }
-}
-
-private enum class AbaDaFicha(val rotulo: String) {
-    Episodios(ReboRotulos.EPISODIOS),
-    Elenco(ReboTextos.Interface.Comum.Elenco),
-    Similares(ReboRotulos.SIMILARES),
 }
 
 @Composable
 private fun ConteudoFicha(
-    ficha: FichaDaMidia,
     acervo: Acervo,
-    usuarioId: String,
-    faixa: ReboFaixa,
-    aoAbrirFicha: (String) -> Unit,
+    ficha: FichaDaMidia,
+    celular: Boolean,
+    aoAssistir: (AlvoDoPlayer) -> Unit,
 ) {
-    val celular = faixa.celular
-    var aba by remember(ficha.id) { mutableStateOf(AbaDaFicha.Elenco) }
-    var episodios by remember(ficha.id) { mutableStateOf<EstadoTela<List<EpisodioDaFicha>>?>(null) }
-    var similares by remember(ficha.id) { mutableStateOf<EstadoTela<List<MidiaCartao>>?>(null) }
-    var tentativa by remember(ficha.id) { mutableStateOf(0) }
-    var mostrarPendencia by remember(ficha.id) { mutableStateOf(false) }
+    var progresso by remember(ficha.id) { mutableStateOf<ProgressoDaMidia?>(null) }
+    var episodios by remember(ficha.serieId) { mutableStateOf<EstadoTela<List<EpisodioDaFicha>>?>(null) }
+    var temporada by remember(ficha.serieId) { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(aba, ficha.id, tentativa) {
-        when (aba) {
-            AbaDaFicha.Episodios -> {
-                episodios = EstadoTela.Carregando
-                episodios = acervo.episodios(usuarioId, ficha.id)
-            }
-            AbaDaFicha.Similares -> {
-                similares = EstadoTela.Carregando
-                similares = acervo.similares(usuarioId, ficha.id)
-            }
-            AbaDaFicha.Elenco -> Unit
+    val alvoProprio = alvoDaFicha(ficha)
+    val ehSerie = ficha.tipo == "Series" && ficha.serieId != null
+
+    LaunchedEffect(acervo, ficha.id) {
+        val tmdb = ficha.tmdb?.toLongOrNull()
+        if (tmdb != null) {
+            progresso = acervo.progressoDe(
+                tmdb = tmdb,
+                tipo = if (ficha.tipo == "Episode") "episodio" else "filme",
+                temporada = ficha.temporada,
+                episodio = ficha.episodio,
+            )
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        if (ficha.urlHeroi != null) {
+    LaunchedEffect(acervo, ficha.serieId) {
+        val serieId = ficha.serieId
+        if (serieId != null) {
+            episodios = EstadoTela.Carregando
+            episodios = acervo.episodios(serieId)
+        }
+    }
+
+    Column(modifier = Modifier.padding(horizontal = ReboDimensao.MargemCelular)) {
+        Row(verticalAlignment = Alignment.Top) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(ReboProporcao.Heroi)
-                    .background(ReboColor.Slot),
+                    .width(ReboDimensao.LarguraCartao)
+                    .aspectRatio(1.0f / 1.5f)
+                    .clip(ReboShape.Capa)
+                    .background(ReboColor.Slot, ReboShape.Capa),
             ) {
-                ReboImagemRemota(ficha.urlHeroi, Modifier.fillMaxSize())
+                ReboImagemRemota(ficha.urlCapa, Modifier.fillMaxSize())
+            }
+            Spacer(Modifier.width(ReboDimensao.EspacoN3))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = ficha.titulo,
+                    style = ReboEstilo.tituloTela(celular),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(ReboDimensao.EspacoN1))
+                Text(
+                    text = FormatoDeTexto.juntar(
+                        listOf(
+                            FormatoDeTexto.tipoEmPortugues(ficha.tipo),
+                            ficha.ano?.toString(),
+                            FormatoDeTexto.duracao(ficha.duracaoMinutos),
+                            FormatoDeTexto.episodio(ficha.temporada, ficha.episodio),
+                        ),
+                    ),
+                    style = ReboEstilo.meta(celular).copy(color = ReboColor.Ink3),
+                )
+                if (ficha.nota != null) {
+                    Spacer(Modifier.height(ReboDimensao.EspacoN1))
+                    Text(
+                        text = ReboRotulos.NOTA + " " + ficha.nota,
+                        style = ReboEstilo.meta(celular).copy(color = ReboColor.Ink2),
+                    )
+                }
+                val generos = ficha.generos.take(3).joinToString(FormatoDeTexto.SEPARADOR)
+                if (generos.isNotBlank()) {
+                    Spacer(Modifier.height(ReboDimensao.EspacoN1))
+                    Text(
+                        text = generos,
+                        style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
 
-        Column(modifier = Modifier.padding(horizontal = ReboDimensao.MargemCelular)) {
-            Spacer(Modifier.height(ReboDimensao.EspacoN4))
-            Row(horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN3)) {
-                Box(
-                    modifier = Modifier
-                        .width(ReboDimensao.LarguraCartao)
-                        .aspectRatio(ReboProporcao.Capa)
-                        .clip(ReboShape.Capa)
-                        .background(ReboColor.Slot, ReboShape.Capa)
-                        .border(ReboDimensao.Fio, ReboColor.Line, ReboShape.Capa),
-                ) {
-                    ReboImagemRemota(ficha.urlCapa, Modifier.fillMaxSize())
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = ficha.titulo,
-                        style = ReboEstilo.tituloTela(celular).copy(color = ReboColor.Ink),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(ReboDimensao.EspacoN1))
-                    Text(
-                        text = metaDaFicha(ficha),
-                        style = ReboEstilo.meta(celular).copy(color = ReboColor.Ink2),
-                    )
-                    if (ficha.generos.isNotEmpty()) {
-                        Spacer(Modifier.height(ReboDimensao.DentroDoTexto))
-                        Text(
-                            text = ficha.generos.joinToString(FormatoDeTexto.SEPARADOR),
-                            style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
+        Spacer(Modifier.height(ReboDimensao.EspacoN3))
 
-            Spacer(Modifier.height(ReboDimensao.EspacoN4))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        if (!ehSerie) {
+            val alvo = alvoProprio
+            if (alvo == null) {
+                Text(
+                    text = ReboRotulos.SEM_ARQUIVO,
+                    style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Danger),
+                )
+            } else {
+                val salvo = progresso
+                val continuar = salvo != null && !salvo.visto && salvo.pos > 5.0
                 ReboBotao(
-                    texto = if (ficha.percentualAssistido != null) ReboRotulos.CONTINUAR else ReboTextos.Interface.Comum.Assistir,
-                    aoTocar = { mostrarPendencia = true },
+                    texto = if (continuar) {
+                        ReboRotulos.CONTINUAR + " " + FormatoDeTexto.relogio(salvo.pos)
+                    } else {
+                        ReboTextos.Interface.Comum.Assistir
+                    },
+                    aoTocar = { aoAssistir(alvo) },
                     tom = ReboBotaoTom.Primario,
                     celular = celular,
                 )
-                ReboBotao(
-                    texto = ReboRotulos.BAIXAR,
-                    aoTocar = { mostrarPendencia = true },
-                    tom = ReboBotaoTom.Contorno,
-                    celular = celular,
-                )
-            }
-            if (mostrarPendencia) {
-                Spacer(Modifier.height(ReboDimensao.EspacoN2))
-                Text(
-                    text = ReboRotulos.PENDENTE_REPRODUTOR,
-                    style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Warn),
-                )
-            }
-
-            Spacer(Modifier.height(ReboDimensao.AntesDeSecao))
-            Text(
-                text = ReboRotulos.SINOPSE,
-                style = ReboEstilo.tituloSecao(celular).copy(color = ReboColor.Ink),
-            )
-            Spacer(Modifier.height(ReboDimensao.EspacoN1))
-            Text(
-                text = ficha.sinopse ?: ReboRotulos.SEM_SINOPSE,
-                style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink2),
-            )
-
-            Spacer(Modifier.height(ReboDimensao.AntesDeSecao))
-            ReboFio()
-            Row(modifier = Modifier.fillMaxWidth()) {
-                AbaDaFicha.entries.forEach { candidata ->
-                    ReboAba(
-                        texto = candidata.rotulo,
-                        selecionada = candidata == aba,
-                        aoTocar = { aba = candidata },
-                        celular = celular,
-                        modifier = Modifier.weight(1f),
-                    )
+                if (continuar && salvo != null) {
+                    Spacer(Modifier.height(ReboDimensao.EspacoN2))
+                    ReboBarraProgresso(fracao = salvo.fracao)
                 }
             }
+        }
+
+        Spacer(Modifier.height(ReboDimensao.AntesDeSecao))
+        ReboFio()
+        Spacer(Modifier.height(ReboDimensao.EspacoN3))
+
+        Text(text = ReboRotulos.SINOPSE, style = ReboEstilo.tituloSecao(celular))
+        Spacer(Modifier.height(ReboDimensao.EspacoN2))
+        Text(
+            text = ficha.sinopse ?: ReboRotulos.SEM_SINOPSE,
+            style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink2),
+        )
+
+        if (ehSerie) {
+            Spacer(Modifier.height(ReboDimensao.AntesDeSecao))
             ReboFio()
             Spacer(Modifier.height(ReboDimensao.EspacoN3))
-
-            when (aba) {
-                AbaDaFicha.Episodios -> SecaoEpisodios(
-                    estado = episodios,
-                    celular = celular,
-                    aoTentarDeNovo = { tentativa += 1 },
-                )
-                AbaDaFicha.Elenco -> SecaoElenco(ficha = ficha, celular = celular)
-                AbaDaFicha.Similares -> SecaoSimilares(
-                    estado = similares,
-                    celular = celular,
-                    faixa = faixa,
-                    aoTentarDeNovo = { tentativa += 1 },
-                    aoAbrirFicha = aoAbrirFicha,
-                )
-            }
-            Spacer(Modifier.height(ReboDimensao.EntreSecoes))
+            Text(text = ReboRotulos.EPISODIOS, style = ReboEstilo.tituloSecao(celular))
+            Spacer(Modifier.height(ReboDimensao.EspacoN2))
+            ListaDeEpisodios(
+                estado = episodios,
+                tmdbDaSerie = ficha.tmdb?.toLongOrNull(),
+                tituloDaSerie = ficha.titulo,
+                temporadaEscolhida = temporada,
+                aoEscolherTemporada = { temporada = it },
+                celular = celular,
+                aoAssistir = aoAssistir,
+            )
         }
     }
 }
 
-private fun metaDaFicha(ficha: FichaDaMidia): String = FormatoDeTexto.juntar(
-    listOf(
-        FormatoDeTexto.tipoEmPortugues(ficha.tipo).takeIf { it.isNotBlank() },
-        ficha.ano?.toString(),
-        FormatoDeTexto.duracao(ficha.duracaoMinutos),
-        ficha.classificacao,
-        ficha.nota?.let { ReboRotulos.NOTA + " " + it },
-        ficha.numeroEpisodios?.let { "$it " + ReboRotulos.EPISODIOS },
-    ),
-)
-
 @Composable
-private fun SecaoEpisodios(
+private fun ListaDeEpisodios(
     estado: EstadoTela<List<EpisodioDaFicha>>?,
+    tmdbDaSerie: Long?,
+    tituloDaSerie: String,
+    temporadaEscolhida: Int?,
+    aoEscolherTemporada: (Int) -> Unit,
     celular: Boolean,
-    aoTentarDeNovo: () -> Unit,
+    aoAssistir: (AlvoDoPlayer) -> Unit,
 ) {
     when (estado) {
-        null, EstadoTela.Carregando -> ReboEstadoCarregando(celular, Modifier.height(ReboDimensao.AlvoLinha * 3))
+        null, EstadoTela.Carregando -> ReboEstadoCarregando(celular)
         is EstadoTela.Falha -> ReboEstadoFalha(
             detalhe = estado.detalhe,
             semRede = estado.semRede,
             celular = celular,
-            aoTentarDeNovo = aoTentarDeNovo,
-            modifier = Modifier.height(ReboDimensao.AlvoLinha * 3),
+            aoTentarDeNovo = { },
         )
         is EstadoTela.Pronto -> {
-            val lista = estado.dado
-            if (lista.isEmpty()) {
-                Text(
-                    text = ReboRotulos.SEM_EPISODIOS,
-                    style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink3),
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2)) {
-                    lista.forEach { episodio ->
-                        LinhaDeEpisodio(episodio = episodio, celular = celular)
-                    }
-                }
+            val todos = estado.dado
+            if (todos.isEmpty()) {
+                ReboEstadoVazio(celular = celular, aoTocarAcao = { })
+                return
             }
+            val temporadas = todos.mapNotNull { it.temporada }.distinct().sorted()
+            val escolhida = temporadaEscolhida ?: temporadas.firstOrNull()
+            if (temporadas.size > 1) {
+                LazyRowDeTemporadas(
+                    temporadas = temporadas,
+                    escolhida = escolhida,
+                    aoEscolher = aoEscolherTemporada,
+                )
+                Spacer(Modifier.height(ReboDimensao.EspacoN2))
+            }
+            todos
+                .filter { escolhida == null || it.temporada == escolhida }
+                .sortedWith(compareBy({ it.temporada ?: 0 }, { it.numero ?: 0 }))
+                .forEach { episodio ->
+                    LinhaDeEpisodio(
+                        episodio = episodio,
+                        celular = celular,
+                        aoTocar = {
+                            val tmdb = tmdbDaSerie
+                            val t = episodio.temporada
+                            val e = episodio.numero
+                            if (tmdb != null && t != null && e != null) {
+                                aoAssistir(
+                                    AlvoDoPlayer(
+                                        titulo = tituloDaSerie,
+                                        subtitulo = FormatoDeTexto.juntar(
+                                            listOf(
+                                                FormatoDeTexto.episodio(t, e),
+                                                episodio.titulo,
+                                            ),
+                                        ),
+                                        tmdb = tmdb,
+                                        episodio = true,
+                                        temporada = t,
+                                        numero = e,
+                                    ),
+                                )
+                            }
+                        },
+                    )
+                }
         }
     }
 }
 
 @Composable
-private fun LinhaDeEpisodio(episodio: EpisodioDaFicha, celular: Boolean) {
+private fun LazyRowDeTemporadas(
+    temporadas: List<Int>,
+    escolhida: Int?,
+    aoEscolher: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2),
+    ) {
+        temporadas.forEach { numero ->
+            ReboChip(
+                texto = ReboRotulos.TEMPORADA + " " + numero,
+                ativa = numero == escolhida,
+                aoTocar = { aoEscolher(numero) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun LinhaDeEpisodio(
+    episodio: EpisodioDaFicha,
+    celular: Boolean,
+    aoTocar: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = ReboDimensao.AlvoLinha),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN3),
+            .clickable { aoTocar() }
+            .padding(vertical = ReboDimensao.EspacoN2),
+        verticalAlignment = Alignment.Top,
     ) {
         Box(
             modifier = Modifier
-                .width(ReboDimensao.EspacoN9)
-                .aspectRatio(ReboProporcao.Heroi)
+                .width(ReboDimensao.LarguraCartao)
+                .aspectRatio(16.0f / 9.0f)
                 .clip(ReboShape.Controle)
                 .background(ReboColor.Slot, ReboShape.Controle),
         ) {
             ReboImagemRemota(episodio.urlImagem, Modifier.fillMaxSize())
+            if (episodio.progresso != null) {
+                ReboBarraProgresso(
+                    fracao = episodio.progresso,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
+        Spacer(Modifier.width(ReboDimensao.EspacoN2))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = episodio.titulo,
-                style = ReboEstilo.tituloItem(celular).copy(color = ReboColor.Ink),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
             Text(
                 text = FormatoDeTexto.juntar(
                     listOf(
                         FormatoDeTexto.episodio(episodio.temporada, episodio.numero),
-                        FormatoDeTexto.duracao(episodio.duracaoMinutos),
+                        episodio.titulo,
                     ),
                 ),
-                style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
+                style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-        }
-    }
-}
-
-@Composable
-private fun SecaoElenco(ficha: FichaDaMidia, celular: Boolean) {
-    if (ficha.pessoas.isEmpty()) {
-        Text(
-            text = ReboRotulos.SEM_ELENCO,
-            style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink3),
-        )
-        return
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN2)) {
-        ficha.pessoas.forEach { pessoa ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(ReboDimensao.EspacoN3),
-            ) {
+            val detalhe = FormatoDeTexto.juntar(
+                listOf(
+                    FormatoDeTexto.duracao(episodio.duracaoMinutos),
+                    if (episodio.visto) ReboRotulos.SALVO_AGORA else null,
+                ),
+            )
+            if (detalhe.isNotBlank()) {
                 Text(
-                    text = pessoa.nome,
-                    style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink),
-                    modifier = Modifier.weight(1f),
+                    text = detalhe,
+                    style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
                 )
-                if (!pessoa.papel.isNullOrBlank()) {
-                    Text(
-                        text = pessoa.papel,
-                        style = ReboEstilo.itemMeta(celular).copy(color = ReboColor.Ink3),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
             }
         }
     }
 }
 
-@Composable
-private fun SecaoSimilares(
-    estado: EstadoTela<List<MidiaCartao>>?,
-    celular: Boolean,
-    faixa: ReboFaixa,
-    aoTentarDeNovo: () -> Unit,
-    aoAbrirFicha: (String) -> Unit,
-) {
-    when (estado) {
-        null, EstadoTela.Carregando -> ReboEstadoCarregando(celular, Modifier.height(ReboDimensao.AlvoLinha * 3))
-        is EstadoTela.Falha -> ReboEstadoFalha(
-            detalhe = estado.detalhe,
-            semRede = estado.semRede,
-            celular = celular,
-            aoTentarDeNovo = aoTentarDeNovo,
-            modifier = Modifier.height(ReboDimensao.AlvoLinha * 3),
-        )
-        is EstadoTela.Pronto -> {
-            if (estado.dado.isEmpty()) {
-                Text(
-                    text = ReboRotulos.SEM_SIMILARES,
-                    style = ReboEstilo.corpo(celular).copy(color = ReboColor.Ink3),
-                )
-            } else {
-                ReboGradeDeCartoes(
-                    itens = estado.dado,
-                    colunas = reboColunasCatalogo(faixa.larguraDp, faixa.alturaDp),
-                    celular = celular,
-                    aoTocar = { aoAbrirFicha(it.id) },
-                )
-            }
-        }
-    }
+/**
+ * Monta o alvo do player a partir da ficha. Fora de `remember` de proposito leve: e barato.
+ */
+private fun alvoDaFicha(ficha: FichaDaMidia): AlvoDoPlayer? {
+    val tmdb = ficha.tmdb?.toLongOrNull() ?: return null
+    return AlvoDoPlayer(
+        titulo = ficha.titulo,
+        subtitulo = FormatoDeTexto.juntar(
+            listOf(
+                FormatoDeTexto.tipoEmPortugues(ficha.tipo),
+                ficha.ano?.toString(),
+                FormatoDeTexto.episodio(ficha.temporada, ficha.episodio),
+            ),
+        ),
+        tmdb = tmdb,
+        episodio = ficha.tipo == "Episode",
+        temporada = ficha.temporada,
+        numero = ficha.episodio,
+    )
 }

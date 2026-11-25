@@ -25,12 +25,23 @@ import platform.UIKit.UIViewController
  */
 private const val CHAVE_DO_ERRO: String = "rebobina.ultimoErro"
 
+/**
+ * Controlador raiz do app, guardado para quem precisa apresentar tela cheia por cima do
+ * Compose: hoje so o player de video (`AVPlayerViewController`).
+ *
+ * Existe porque `keyWindow` esta fora de moda desde o iOS 13 e porque this controlador e o
+ * unico que nunca sai de cena.
+ */
+internal var raizDoApp: UIViewController? = null
+
 @OptIn(ExperimentalNativeApi::class)
 fun MainViewController(): UIViewController {
     instalarGanchoDeErro()
     val erro = consumirErroGravado()
     if (erro != null) return telaDeErro(erro)
-    return ComposeUIViewController { App() }
+    val raiz = ComposeUIViewController { App() }
+    raizDoApp = raiz
+    return raiz
 }
 
 @OptIn(ExperimentalNativeApi::class)
