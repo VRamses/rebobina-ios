@@ -1,6 +1,6 @@
 name: Prova AVFoundation
 
-# Temporario: lista os membros que a platform lib do AVFoundation expoe em AVPlayer.
+# Temporario: descobre como inspecionar o klib do AVFoundation na Kotlin 2.4.10.
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   prova:
-    name: Membros de AVPlayer na platform lib
+    name: Inspecionar o klib do AVFoundation
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -28,27 +28,42 @@ jobs:
       - name: Baixar a distribuicao Kotlin/Native
         run: ./gradlew -q :composeApp:downloadKotlinNativeDistribution --console=plain
 
-      - name: Conteudo do klib do AVFoundation
+      - name: Ferramenta klib
         run: |
-          set -uo pipefail
+          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
+          echo "K=$K"
+          "$K/bin/klib" --help > /tmp/help.txt 2>&1 || echo "help saiu com $?"
+          head -45 /tmp/help.txt || true
+
+      - name: Conteudo do klib
+        run: |
           K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
           LIB="$K/klib/platform/ios_arm64/org.jetbrains.kotlin.native.platform.AVFoundation"
           echo "LIB=$LIB"
-          ls "$LIB" || true
-          "$K/bin/klib" contents "$LIB" > /tmp/av.txt 2>&1
-          echo "codigo de saida do klib: $?"
-          echo "linhas: $(wc -l < /tmp/av.txt)"
-          echo "--- primeiras linhas ---"
-          head -6 /tmp/av.txt
-          echo "--- contagem ---"
-          for t in "class AVPlayer" "addPeriodicTimeObserverForInterval" "removeTimeObserver" "seekToTime" "currentItem" "fun play" "fun pause" "fun rate"; do
-            echo "$t => $(grep -c "$t" /tmp/av.txt)"
+          find "$LIB" -maxdepth 3 | head -25 || true
+          echo "--- klib contents ---"
+          "$K/bin/klib" contents "$LIB" > /tmp/av.txt 2>&1 || echo "contents saiu com $?"
+          echo "linhas em /tmp/av.txt: $(wc -l < /tmp/av.txt)"
+          head -20 /tmp/av.txt || true
+          echo "--- klib dump-metadata ---"
+          "$K/bin/klib" dump-metadata "$LIB" > /tmp/av2.txt 2>&1 || echo "dump-metadata saiu com $?"
+          echo "linhas em /tmp/av2.txt: $(wc -l < /tmp/av2.txt)"
+          head -20 /tmp/av2.txt || true
+
+      - name: Procurar os nomes dentro do klib
+        run: |
+          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
+          LIB="$K/klib/platform/ios_arm64/org.jetbrains.kotlin.native.platform.AVFoundation"
+          echo "--- grep binario no diretorio do klib ---"
+          for t in addPeriodicTimeObserverForInterval removeTimeObserver seekToTime currentItem; do
+            echo "$t => $(grep -a -r -l "$t" "$LIB" 2>/dev/null | wc -l) arquivos"
           done
-          echo "--- janela do texto onde aparece AVPlayer ---"
-          N=$(grep -n "AVPlayer" /tmp/av.txt | head -1 | cut -d: -f1)
-          echo "primeira ocorrencia na linha: ${N:-nenhuma}"
-          if [ -n "${N:-}" ]; then
-            sed -n "$((N>5 ? N-3 : 1)),$((N+60))p" /tmp/av.txt
-          fi
-          echo "--- membros procurados no arquivo inteiro ---"
-          grep -oE "addPeriodicTimeObserverForInterval|removeTimeObserver|seekToTime|currentItem|play|pause|rate" /tmp/av.txt | sort | uniq -c || true
+          echo "--- strings nos linkdata ---"
+          find "$LIB" -type f | head -10 || true
+          find "$LIB" -type f -exec strings -a {} + 2>/dev/null > /tmp/str.txt || true
+          echo "linhas de strings: $(wc -l < /tmp/str.txt)"
+          for t in AVPlayer addPeriodicTimeObserverForInterval removeTimeObserver seekToTime currentItem play pause rate; do
+            echo "$t => $(grep -c -x "$t" /tmp/str.txt)"
+          done
+          echo "--- linhas com Time e com Player ---"
+          grep -iE "TimeObserver|seekTo" /tmp/str.txt | sort -u | head -20 || true
