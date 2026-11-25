@@ -247,3 +247,58 @@ jobs:
             echo "Logs publicados no artefato rebobina-ios-logs-${{ github.run_number }} quando existirem."
             echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  testes:
+    # Job separado de proposito: os dois jobs nao tem `needs` entre si, entao
+    # teste vermelho nao impede publicar o IPA e falha no IPA nao esconde o teste.
+    # Antes disto o commonTest nunca executava em lugar nenhum: o alvo iOS so
+    # compila em macOS, e o IPA nao roda teste.
+    #
+    # Por que runner Linux: quem executa o commonTest na JVM e o alvo Android do
+    # composeApp (plugin com.android.kotlin.multiplatform.library), pela tarefa
+    # :composeApp:testAndroidHostTest, que precisa de JDK e SDK do Android, nao de
+    # Xcode. Minuto de runner Linux nao consome a cota do macOS.
+    name: Testes comuns na JVM (host test do alvo Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: JDK 21 (temurin)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Gradle com cache
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: SDK do Android com a plataforma do compileSdk
+        # androidLibrary usa compileSdk 36: compilar o host test precisa de
+        # platforms/android-36 e das build-tools. A imagem do ubuntu ja traz o
+        # cmdline-tools; o sdkmanager e idempotente e so garante a versao fixada.
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "SDK do Android em ${SDK}"
+          yes | "${SDK}/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "${SDK}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Rodar os 11 testes do ProgressoFinal e os do ReboAdaptativo
+        # Nome conferido, nao chutado: `./gradlew :composeApp:tasks --all` lista
+        # "testAndroidHostTest - Run unit tests for the androidMain build".
+        # O commonTest cai nessa tarefa porque composeApp/build.gradle.kts liga
+        # androidLibrary { withHostTest {} }, que o plugin deixa desligado por padrao.
+        run: ./gradlew :composeApp:testAndroidHostTest --no-daemon --console=plain --stacktrace
+
+      - name: Publicar o relatorio dos testes
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rebobina-ios-testes-${{ github.run_number }}
+          path: composeApp/build/test-results/testAndroidHostTest
+          retention-days: 7
+          if-no-files-found: warn

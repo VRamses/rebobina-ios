@@ -22,6 +22,12 @@ kotlin {
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
+        // O plugin de biblioteca Android para KMP desliga teste de host por padrao
+        // (KotlinMultiplatformAndroidLibraryExtension.withHostTest). Sem isto o
+        // commonTest nao tem onde rodar: os alvos iOS precisam de macOS, e o alvo
+        // Android e o unico que executa teste na JVM.
+        withHostTest {}
+
         compilerOptions {
             jvmTarget = JvmTarget.JVM_11
         }
