@@ -184,6 +184,7 @@ jobs:
             echo "| arquivo | Rebobina.ipa |"
             echo "| tamanho | ${BYTES} bytes (${MIB} MiB) |"
             echo "| sha256 | \`${SHA}\` |"
+            echo "| diagnostico | gancho de excecao nao tratada ligado: o texto da falha aparece na abertura seguinte |"
             echo "| duracao do job | ${MIN}m ${SEG}s |"
             echo "| runner macOS | ${MIN} min, cobrados como $((SEGUNDOS * 10 / 60)) min da cota (fator 10 de repo privado) |"
             echo "| run | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} |"
@@ -197,6 +198,18 @@ jobs:
           path: build/ipa/Rebobina.ipa
           retention-days: 14
           if-no-files-found: error
+
+      - name: Publicar simbolos de depuracao
+        # Sem o dSYM o relatorio de crash do iPhone so traz endereco solto, sem nome de funcao:
+        # foi o que impediu de nomear a excecao do build 202611230124. O arquivo fica no
+        # artefato e serve para `atos` depois, em qualquer Mac ou pelo GitHub Codespaces.
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rebobina-ios-dsym-${{ github.run_number }}
+          path: build/Rebobina.xcarchive/dSYMs
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Prova extra do commonMain no alvo Android
         # O modulo tem alvo Android alem do iOS, mas o IPA nao depende dele: o

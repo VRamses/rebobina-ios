@@ -13,7 +13,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class RespostaCatalogo(
     val ok: Boolean = false,
-    val schema: String? = null,
+    /** Numero do formato do JSON, hoje 1. A tela nao usa; fica aqui para o dia em que mudar. */
+    val schema: Int? = null,
     val geradoEm: String? = null,
     val usuario: UsuarioDoCatalogoDto? = null,
     val chips: List<ChipDto> = emptyList(),

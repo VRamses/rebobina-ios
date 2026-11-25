@@ -27,12 +27,17 @@ Provas desta rodada, todas feitas nesta máquina (Windows, sem Mac), no commit `
 | 3 | O servidor entrega o que a ficha precisa | `/catalogo/item/41469a386a180fcd61fd765c541e3176` devolve 200 com "Duna: Parte Dois", tmdb `693134`, `duracaoMin 166`; id inválido devolve 404 `{"erro":"item invalido"}` |
 | 4 | Episódios vêm com sinopse | `/catalogo/episodios?serie=d192436aec821c9592f3c296f26f4e00` (Dark Matter) devolve 39 itens, sinopse nos 39 e `duracaoMin` em nenhum: é lacuna do acervo, não do mapeamento |
 | 5 | O arquivo que o player abre toca | Duna: Parte Dois preparado em 946 s, 30.669.192.037 bytes em cache, `206` com Range, `Duration 02:45:48`, `hevc Main 10 hvc1 3840x1606`, áudio `aac LC 48 kHz` |
+| 6 | Os DTOs batem com o JSON real | `node scripts/prova-dtos.mjs` conferiu 12 tipos contra as rotas `/catalogo`, `/catalogo/item`, `/catalogo/itens`, `/catalogo/busca?termo=`, `/catalogo/episodios?serie=`, `/progresso` e `/progresso/item/`: nenhum campo com tipo trocado. Achou um: `schema` vinha número (`1`) e o DTO pedia texto, corrigido para `Int?` |
 
 **O que não está provado:** o código de `iosMain` nunca foi compilado. Esta máquina não tem
 toolchain Kotlin/Native (não existe `~/.konan`) e o alvo iOS só compila em macOS. O que dá para
 afirmar é que `commonMain` compila inteiro, e é ali que está quase toda a lógica; `PlayerNativo.ios.kt`
 e as duas linhas novas de `MainViewController.kt` seguem a API do AVFoundation como o Kotlin/Native
-a expõe e só serão conferidos no primeiro build do runner.
+a expõe e só serão conferidos no primeiro build do runner. Para reduzir esse risco, os nomes de
+API usados em `iosMain` foram conferidos por busca de código no GitHub: `platform.AVFAudio.AVAudioSession`
+aparece em 746 arquivos Kotlin, `AVPlayerItem(uRL = ...)` em 130, `addPeriodicTimeObserverForInterval`
+em 105 e `CMTimeMakeWithSeconds` em 222. Isso mostra que os nomes existem, não que este arquivo
+compila.
 
 **O build do IPA está bloqueado por cobrança, não por código.** O run 45522164407 (commit
 `ea90896`, 25/11/2026 00:57 UTC) falhou em 5 s sem executar passo nenhum, com a anotação do GitHub:
