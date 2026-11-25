@@ -8,7 +8,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import net.dynv6.rebobina.dados.Acervo
 import net.dynv6.rebobina.dados.AlvoDoPlayer
 import net.dynv6.rebobina.dados.EstadoTela
@@ -52,7 +51,6 @@ fun TelaPlayer(
     aoVoltar: () -> Unit,
 ) {
     val celular = faixa.celular
-    val escopo = rememberCoroutineScope()
     var preparo by remember(alvo) { mutableStateOf<EstadoTela<PreparoDaMidia>?>(null) }
     var progresso by remember(alvo) { mutableStateOf<ProgressoDaMidia?>(null) }
     var posicao by remember(alvo) { mutableStateOf(0.0) }
@@ -98,17 +96,18 @@ fun TelaPlayer(
                 posicao = novaPosicao
                 duracao = novaDuracao
                 salvou = false
-                escopo.launch {
-                    acervo.salvarProgresso(
-                        tmdb = alvo.tmdb,
-                        tipo = alvo.tipoNoProgresso,
-                        temporada = alvo.temporada,
-                        episodio = alvo.numero,
-                        pos = novaPosicao,
-                        duracao = novaDuracao,
-                    )
-                    salvou = true
-                }
+                // Quem grava e o acervo, no escopo dele: essa funcao tambem e chamada no
+                // fechamento do player, quando esta tela ja saiu de cena e o escopo daqui
+                // ja foi cancelado.
+                acervo.registrarProgresso(
+                    tmdb = alvo.tmdb,
+                    tipo = alvo.tipoNoProgresso,
+                    temporada = alvo.temporada,
+                    episodio = alvo.numero,
+                    pos = novaPosicao,
+                    duracao = novaDuracao,
+                    aoConcluir = { deuCerto -> salvou = deuCerto },
+                )
             },
         )
     }

@@ -1,5 +1,9 @@
 package net.dynv6.rebobina.dados
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -83,6 +87,15 @@ internal object FormatoDeTexto {
  */
 class Acervo(endereco: String) {
     private val api = CatalogoApi(endereco)
+
+    /**
+     * Escopo proprio para gravar progresso, independente da tela que pediu.
+     *
+     * O fechamento do player acontece quando a tela dele ja saiu de cena, e o
+     * `rememberCoroutineScope` da tela esta cancelado nesse instante: uma corrotina presa a ela
+     * perderia justamente a gravacao final. O acervo vive enquanto o app vive.
+     */
+    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     suspend fun inicio(): EstadoTela<PaginaInicio> = tentar {
         val dto = api.catalogo()
@@ -194,6 +207,34 @@ class Acervo(endereco: String) {
         throw e
     } catch (e: Exception) {
         false
+    }
+
+    /**
+     * Grava a posicao sem prender quem chamou, e conta o resultado em `aoConcluir`.
+     *
+     * O player chama daqui no observador de 5 s e no fechamento. O fechamento pode acontecer com
+     * a tela do player ja descartada, entao a corrotina nao pode depender do escopo dela.
+     */
+    fun registrarProgresso(
+        tmdb: Long,
+        tipo: String,
+        temporada: Int?,
+        episodio: Int?,
+        pos: Double,
+        duracao: Double,
+        aoConcluir: (Boolean) -> Unit = {},
+    ) {
+        escopo.launch {
+            val deuCerto = salvarProgresso(
+                tmdb = tmdb,
+                tipo = tipo,
+                temporada = temporada,
+                episodio = episodio,
+                pos = pos,
+                duracao = duracao,
+            )
+            aoConcluir(deuCerto)
+        }
     }
 
     /**
