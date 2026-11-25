@@ -1,0 +1,91 @@
+name: Prova AVFoundation
+
+# Temporario: descobre por que os membros de AVPlayer nao resolvem no compileKotlinIosArm64.
+# Descartar depois da resposta.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prova:
+    name: Simbolos da platform lib e compilacao minima
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Baixar a distribuicao Kotlin/Native do projeto
+        run: ./gradlew -q :composeApp:downloadKotlinNativeDistribution --console=plain
+
+      - name: Versao do Kotlin e da distribuicao
+        run: |
+          set -euo pipefail
+          grep -E "kotlin|compose" gradle/libs.versions.toml
+          ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* || true
+
+      - name: Procurar os simbolos na platform lib usada
+        run: |
+          set -euo pipefail
+          for K in "$HOME"/.konan/kotlin-native-prebuilt-macos-*; do
+            echo "== $K"
+            "$K/bin/konanc" -version || true
+            ls "$K/klib/platform/ios_arm64" | head -40
+            LIB="$K/klib/platform/ios_arm64/platform.AVFoundation"
+            if [ -e "$LIB" ]; then
+              echo "-- simbolos procurados --"
+              "$K/bin/klib" contents "$LIB" 2>&1 | grep -oE "addPeriodicTimeObserverForInterval|removeTimeObserver|seekToTime|\"play\"|\"pause\"|currentItem" | sort | uniq -c
+            else
+              echo "nao achei $LIB"
+            fi
+          done
+
+      - name: Compilar variantes minimas com konanc
+        run: |
+          set -euo pipefail
+          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
+          cat > /tmp/provaA.kt <<'EOF'
+import platform.AVFoundation.AVPlayer
+import platform.CoreMedia.CMTimeMakeWithSeconds
+import platform.darwin.dispatch_get_main_queue
+
+fun provaA(p: AVPlayer) {
+    p.addPeriodicTimeObserverForInterval(CMTimeMakeWithSeconds(5.0, 600), dispatch_get_main_queue()) { tempo ->
+        println(tempo)
+    }
+    p.play()
+    p.pause()
+    println(p.currentItem)
+    p.seekToTime(CMTimeMakeWithSeconds(1.0, 600))
+}
+EOF
+          cat > /tmp/provaB.kt <<'EOF'
+import platform.AVFoundation.*
+
+fun provaB(p: AVPlayer) {
+    val observador = p.addPeriodicTimeObserverForInterval(
+        interval = CMTimeMakeWithSeconds(5.0, 600),
+        queue = platform.darwin.dispatch_get_main_queue(),
+        usingBlock = { tempo -> println(tempo) },
+    )
+    p.removeTimeObserver(observador)
+    p.play()
+    p.pause()
+    println(p.currentItem)
+}
+EOF
+          for v in A B; do
+            echo "===== variante $v ====="
+            "$K/bin/konanc" -target ios_arm64 -p library -o "/tmp/prova$v" "/tmp/prova$v.kt" 2>&1 | head -40 || true
+          done
