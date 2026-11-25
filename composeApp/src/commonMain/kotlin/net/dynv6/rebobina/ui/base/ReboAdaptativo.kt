@@ -30,14 +30,6 @@ fun reboColunasCatalogo(larguraDp: Float, alturaDp: Float): Int =
         ReboGrade.Ios.ColunasHorizontal
     }
 
-/** Colunas da grade de canais: 2 em pe no celular, 4 deitado, e a mesma do iOS fora do celular. */
-fun reboColunasCanal(larguraDp: Float, alturaDp: Float): Int =
-    if (reboFaixaCelular(larguraDp, alturaDp)) {
-        ReboGrade.Ios.ColunasCanalVertical
-    } else {
-        ReboGrade.Ios.ColunasCanalHorizontal
-    }
-
 /** Faixa resolvida, para a tela nao repetir a conta. */
 data class ReboFaixa(
     val celular: Boolean,

@@ -52,12 +52,4 @@ class ReboAdaptativoTest {
         assertEquals(ReboGrade.Ios.ColunasHorizontal, reboColunasCatalogo(600f, 800f))
         assertEquals(4, reboColunasCatalogo(600f, 800f))
     }
-
-    @Test
-    fun colunasDoCanalSeguemAFaixa() {
-        assertEquals(ReboGrade.Ios.ColunasCanalVertical, reboColunasCanal(599f, 800f))
-        assertEquals(2, reboColunasCanal(599f, 800f))
-        assertEquals(ReboGrade.Ios.ColunasCanalHorizontal, reboColunasCanal(600f, 800f))
-        assertEquals(4, reboColunasCanal(600f, 800f))
-    }
 }

@@ -29,22 +29,44 @@ Provas desta rodada, todas feitas nesta máquina (Windows, sem Mac), no commit `
 | 5 | O arquivo que o player abre toca | Duna: Parte Dois preparado em 946 s, 30.669.192.037 bytes em cache, `206` com Range, `Duration 02:45:48`, `hevc Main 10 hvc1 3840x1606`, áudio `aac LC 48 kHz` |
 | 6 | Os DTOs batem com o JSON real | `node scripts/prova-dtos.mjs` conferiu 12 tipos contra as rotas `/catalogo`, `/catalogo/item`, `/catalogo/itens`, `/catalogo/busca?termo=`, `/catalogo/episodios?serie=`, `/progresso` e `/progresso/item/`: nenhum campo com tipo trocado. Achou um: `schema` vinha número (`1`) e o DTO pedia texto, corrigido para `Int?` |
 
-**O que não está provado:** o código de `iosMain` nunca foi compilado. Esta máquina não tem
-toolchain Kotlin/Native (não existe `~/.konan`) e o alvo iOS só compila em macOS. O que dá para
-afirmar é que `commonMain` compila inteiro, e é ali que está quase toda a lógica; `PlayerNativo.ios.kt`
-e as duas linhas novas de `MainViewController.kt` seguem a API do AVFoundation como o Kotlin/Native
-a expõe e só serão conferidos no primeiro build do runner. Para reduzir esse risco, os nomes de
-API usados em `iosMain` foram conferidos por busca de código no GitHub: `platform.AVFAudio.AVAudioSession`
-aparece em 746 arquivos Kotlin, `AVPlayerItem(uRL = ...)` em 130, `addPeriodicTimeObserverForInterval`
-em 105 e `CMTimeMakeWithSeconds` em 222. Isso mostra que os nomes existem, não que este arquivo
-compila.
+**O `iosMain` compilou e o IPA do run 29 existe.** O run 29 (id 45541187861, commit `01d1149`,
+25/11/2026) terminou `success` e publicou o artefato `rebobina-ios-ipa-29` com `Rebobina.ipa` de
+10.691.419 bytes e sha256
+`214143f718ad73ac089ca1e10c9a39042f5cff893e8dfaeb602271bcc12fbba4`. As quatro linhas que provam
+compilação e link, copiadas do log sem reescrever o texto (só saíram o prefixo do passo e os
+códigos de cor do console):
 
-**O build do IPA está bloqueado por cobrança, não por código.** O run 45522164407 (commit
-`ea90896`, 25/11/2026 00:57 UTC) falhou em 5 s sem executar passo nenhum, com a anotação do GitHub:
-"The job was not started because recent account payments have failed or your spending limit needs
-to be increased". O último run que chegou a rodar foi o 45488613486, `success` em 10m54s, e ele
-compilou o commit anterior, não este: consumiu o que restava da cota de macOS. Sem cobrança
-liberada, não sai IPA novo até a cota virar, em 01/12/2026.
+```
+2026-11-25T03:38:46.0879850Z > Task :composeApp:compileKotlinIosArm64
+2026-11-25T03:38:46.3578520Z BUILD SUCCESSFUL in 35s
+2026-11-25T03:48:40.2838330Z > Task :composeApp:linkReleaseFrameworkIosArm64
+2026-11-25T03:48:40.2853570Z BUILD SUCCESSFUL in 9m 39s
+```
+
+Antes dele o player nativo nunca tinha passado do compilador: o run 28 (id 45540738688, commit
+`e4ebc74`) morreu em `e: .../PlayerNativo.ios.kt:69:61 Unresolved reference 'duration'.`, e o
+commit `01d1149` acrescentou a importação da extensão de `AVPlayerItem` que faltava. O que
+**não** está provado continua sendo o que exige aparelho: o app abrindo, a tela desenhada, a
+chamada ao servidor em execução e o som com a chave física no silencioso. Também não há prova de
+teste nenhum: o workflow não tem passo de teste e esta máquina não tem JDK nem Android SDK.
+
+**Quais arquivos de `iosMain` entraram no build.** O log não lista fonte compilada; o que ele
+nomeia é a única advertência de `iosMain`, `PlayerNativo.ios.kt:38:10` (`'expect'/'actual'
+classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in
+Beta`), mais `commonMain/.../PlayerNativo.kt:15:10` e `commonMain/.../ui/telas/TelaFicha.kt:201:34`.
+Para os outros três arquivos de `iosMain` a prova é a string que só ele tem, achada por busca de
+bytes no binário `Payload/Rebobina.app/Rebobina` do IPA do run 29: `rebobina.ultimoErro` em
+UTF-16LE x1 (`MainViewController.kt`), `iPhone (iOS)` em UTF-16LE x1 (`Plataforma.ios.kt`),
+`rebobina.endereco` em UTF-16LE x1 (`dados/Plataforma.ios.kt`) e `AVPlayerViewController` em
+UTF-8 x18 mais `AVAudioSession` em UTF-8 x5 (`player/PlayerNativo.ios.kt`).
+
+**O bloqueio por cobrança era temporário.** Nove runs do workflow "IPA iOS" entre 24 e 25/11 têm
+job com zero passo executado: cinco morreram em 2 ou 3 s (#12, #14, #22, #25 e #26) e quatro
+ficaram na fila e foram cancelados ou falharam sem nenhum passo, de 213 s a 908 s (#13, #15, #19
+e #23). A anotação de pagamento recusado foi lida no run 45522164407 (#25):
+"The job was not started because recent account payments have failed or your spending limit
+needs to be increased". O disparo das 03:36 UTC de 25/11 já rodou inteiro e custou 801 s de
+runner (13m21s).
 
 ## Se o app não abrir no iPhone, leia isto primeiro
 
@@ -110,6 +132,12 @@ máquina, e é isso que separa "compila e entra no IPA" de "desenha e lê o acer
 | 19 | As cinco telas e o cliente Jellyfin compilam, entram no IPA e o CI roda a trava do desenho | run #10 (id 45177622503), commit `2b99e44da3a7b285dcf36f847ee597fbf4e7510c`, `success` em 4m29s (269 s pelo cronômetro do workflow, 310 s de job de 12:47:28 a 12:52:38 UTC), artefato `rebobina-ios-ipa-10` com 10.586.276 bytes e digest `sha256:6aae99e63a73aa1c77ece88068c156ac69cf8bae3df6ece39b62ca5ed322d4a0`; baixado e aberto: `Rebobina.ipa` de 10.635.214 bytes (10,14 MiB) e sha256 `12c27b48b3119eb2e991b8b6dc5fd6f5f13e7cf075d659b4cd548f83864a529d`, binário `Payload/Rebobina.app/Rebobina` de 29.581.704 bytes (+4.699.584 sobre o run #9), `Info.plist` de 1.487 bytes com `MinimumOSVersion 17.0`, `CFBundleIdentifier net.dynv6.rebobina.ios`, `DTSDKName iphoneos26.5` e o ATS com `NSAllowsArbitraryLoads true`; o log mostra `> Task :composeApp:compileKotlinIosArm64` executado (não `UP-TO-DATE`, não `FROM-CACHE`) e `BUILD SUCCESSFUL`, `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` duas vezes (no passo "Compilar Kotlin" e no archive, porque as tarefas `conferirTokens` e `conferirDesenho` rodam antes de cada `compileKotlin`), e `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` em 12 s, o que prova o mesmo `commonMain` compilando para Android; no binário estão as strings das telas e do cliente em UTF-16 (`Continuar assistindo`, `Adicionados recentemente`, `Nada baixado ainda`, `Fila deste aparelho`, `Digite o nome de um filme`, `Resultados`, `Sinopse`, `Temporada`, `Chave de API`, `Endereço do servidor`, `X-Emby-Token`, `/Users`, `LiveTv/Channels`, `192.168.18.9:8096`), o que prova que `commonMain`, `ui/base`, `ui/telas` e `dados` foram linkados; passos: "Trava dos tokens" 1 s, "Compilar Kotlin (iOS arm64)" 23 s, "Xcode archive sem assinatura" 215 s, "Empacotar IPA" 2 s, "Publicar IPA" 2 s, "Prova extra do commonMain no alvo Android" 13 s, todos `success` |
 | 20 | O conferidor cross-repo passou a fechar verde nos cinco clientes | `node design/tokens/conferir.mjs` dentro deste repositório em 23/11/2026 12:59 UTC, lendo pela API do GitHub: `canonico: design\tokens\rebobina-tokens.json versao 1.0.8, sha256 c39b8fe77bfe...`, e a lista `ok rebobina-tv`, `ok rebobina-desktop`, `ok rebobina-ios main em dia`, `ok rebobina-android main em dia`, `ok rebobina-webos main em dia`, `ok rebobina-webos textos nao conferido (sem copia local do canonico)`, com `todas as copias em dia com o canonico` e exit 0. Nesta rodada o iOS não mudou nada de token: o que mudou foi o Android, que reimportou a 1.0.8 em paralelo e deixou de aparecer como `ATRASADO`; a leitura é do conferidor, não de inspeção minha no repositório do Android |
 | 21 | A 1.1.0 entrou no app, o build compila e o IPA do run #11 contém o texto gerado | commit `fb9eb94` com 17 arquivos e a reimportação dos tokens; run #11 (id 45206725111) `success` em 23/11/2026, job de 275 s (4m35s) e run de 282 s (4m42s), 45,8 minutos cobrados pelo piso (50 se o GitHub arredondar o job para cima), passo "Trava dos tokens" com `trava dos tokens: ok, versao 1.1.0, sha256 622f1495f876..., ReboTokensGerado.kt com 12682 bytes e ReboTextos.kt com 2996 bytes iguais ao commitado` e passo "Compilar Kotlin" com `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas`; artefato `rebobina-ios-ipa-11` com 10.583.573 bytes (zip, sha256 `1de85628ed19e5653631cfa59e5fcf519e5f1886e80212944dd8285cdef783ca`), `Rebobina.ipa` de 10.634.122 bytes e sha256 `8d08d080eda6e2acd372ef2b72ae4eba07575f33a2b4dc9068155e5503c0634c`, binário `Rebobina` de 29.581.904 bytes com a string `Séries` em UTF-16LE no deslocamento 28749106, e o passo Android com `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)` |
+| 22 | O `iosMain` compila e linka no runner | run #29 (id 45541187861), commit `01d1149` (`145f9c0` é o HEAD desta árvore, que só apagou o workflow de prova), `success` em 25/11/2026, job único de 03:36:58 a 03:50:19 UTC (801 s); log com `2026-11-25T03:38:46.0879850Z > Task :composeApp:compileKotlinIosArm64`, `BUILD SUCCESSFUL in 35s`, e `2026-11-25T03:48:40.2838330Z > Task :composeApp:linkReleaseFrameworkIosArm64` seguido de `BUILD SUCCESSFUL in 9m 39s`; a advertência do arquivo novo é `PlayerNativo.ios.kt:38:10` |
+| 23 | O IPA do run 29 foi empacotado e publicado | artefato `rebobina-ios-ipa-29` com 10.641.875 bytes (zip) e `rebobina-ios-dsym-29` com 8.227.392 bytes, lidos em `gh api repos/VRamses/rebobina-ios/actions/runs/45541187861/artifacts`; `Rebobina.ipa` de 10.691.419 bytes e sha256 `214143f718ad73ac089ca1e10c9a39042f5cff893e8dfaeb602271bcc12fbba4`; binário `Payload/Rebobina.app/Rebobina` de 29.681.600 bytes; a linha do `xcodebuild archive` no log traz `MARKETING_VERSION=0.1.0 CURRENT_PROJECT_VERSION=202611250338` e o passo "Empacotar IPA" imprime `-rw-r--r-- 1 runner staff 10691419 Nov 25 03:49 Rebobina.ipa` |
+| 24 | Os quatro arquivos de `iosMain` estão dentro do binário | busca de bytes no binário do IPA do run 29: `rebobina.ultimoErro` UTF-16LE x1, `iPhone (iOS)` UTF-16LE x1, `rebobina.endereco` UTF-16LE x1, `AVPlayerViewController` UTF-8 x18 e `AVAudioSession` UTF-8 x5; cada string é literal de um único arquivo de `iosMain`, conferido por busca no código. O log não lista fonte compilada: nomeia só a advertência de `PlayerNativo.ios.kt:38:10` |
+| 25 | O link do app resolve AVKit, AVFAudio e AVFoundation sem `OTHER_LDFLAGS` | `OTHER_LDFLAGS`, `AVKit`, `AVFAudio` e `AVFoundation` aparecem 0 vezes no `iosApp/iosApp.xcodeproj/project.pbxproj` (301 linhas), e o binário do run 29 tem `LC_LOAD_DYLIB` para `/System/Library/Frameworks/AVFAudio.framework/AVFAudio`, `AVKit.framework/AVKit`, `AVFoundation.framework/AVFoundation` e `CoreMedia.framework/CoreMedia`; no log do run 29, `Undefined symbols` sai 0 e `AVKit`/`AVFAudio`/`AVFoundation` saem 0 (os 10 acertos de `-framework` no log são casuais: `sh -n scripts/build-kotlin-framework.sh`, `FRAMEWORK_FLAG_PREFIX`, `FRAMEWORK_SEARCH_PATHS`, `Framework pronto:` e as linhas do `swiftc`/`clang`, nenhum deles sobre as três frameworks de mídia); no binário, `-framework` e `LC_LINKER_OPTION` saem 0, porque o `ld` consome os registros de autolink no link. O commit `145f9c0` só removeu a prova temporária, e `git diff 01d1149 HEAD -- iosApp` sai vazio, então o pbxproj do run 29 é o desta árvore |
+| 26 | O `commonMain` compila para Android neste mesmo commit | passo "Prova extra do commonMain no alvo Android" do run 29, `success`, com `BUILD SUCCESSFUL in 38s` e `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)`, e a advertência de `androidMain/.../PlayerNativo.android.kt:9:10` no log |
+| 27 | O código morto saiu e as duas travas continuam passando | `reboColunasCanal` com 0 ocorrências em código Kotlin do repositório depois da remoção (busca em todos os `.kt`, incluindo o arquivo `ui/base/ReboAdaptativo.kt` e o teste `ReboAdaptativoTest.kt`); as três menções que sobraram são prosa deste documento, descrevendo a remoção. Sobram só os nomes de token `ReboGrade.Ios.ColunasCanalVertical` e `ReboGrade.Ios.ColunasCanalHorizontal` no arquivo gerado, que continua byte a byte igual ao canônico; `node scripts/conferir-tokens.mjs` sai 0 com `trava dos tokens: ok, versao 1.1.0, sha256 622f1495f876..., ReboTokensGerado.kt com 12682 bytes e ReboTextos.kt com 2996 bytes iguais ao commitado`; `node scripts/conferir-desenho.mjs` sai 0 com `desenho: ok, 6 telas, nenhum literal de cor/tamanho em ui/telas` |
 
 ## O que NÃO está provado
 
@@ -120,20 +148,25 @@ máquina, e é isso que separa "compila e entra no IPA" de "desenha e lê o acer
   `desenho: ok, 6 telas`), mas continua sendo texto. Ela não prova que o desenho ficou bonito,
   nem que o pixel bate com o Android: isso só uma captura de tela prova, e não há Mac nem
   iPhone aqui.
-- **Executar o app e ver a tela.** Compilar, linkar e empacotar está provado pelos runs #10 e
-  #11; o que não foi provado é o app abrindo: nenhuma tela desta rodada foi desenhada em
+- **Executar o app e ver a tela.** Compilar, linkar e empacotar está provado pelos runs #10,
+  #11 e #29; o que não foi provado é o app abrindo: nenhuma tela desta rodada foi desenhada em
   aparelho, nenhum toque, rolagem ou troca de aba foi exercitado, e os artefatos
-  `rebobina-ios-ipa-10` e `rebobina-ios-ipa-11` nunca foram instalados. O binário crescer
-  4,5 MiB e conter as strings das telas prova que o código está dentro dele, não que ele
-  funciona.
-- **Testes de `commonTest`.** Os 7 testes de `ReboAdaptativoTest` foram escritos e nunca
-  executados: o CI roda só `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`,
-  e esta máquina não tem JDK nem Gradle para rodar `iosSimulatorArm64Test`.
+  `rebobina-ios-ipa-10`, `rebobina-ios-ipa-11` e `rebobina-ios-ipa-29` nunca foram instalados. O
+  binário crescer e conter as strings das telas prova que o código está dentro dele, não que
+  ele funciona.
+- **Testes de `commonTest`.** Os 6 testes de `ReboAdaptativoTest` foram escritos e nunca
+  executados: o workflow `.github/workflows/ios.yml` não tem passo de teste (roda só
+  `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`), e esta máquina não
+  tem JDK, Gradle nem Android SDK para rodar `iosSimulatorArm64Test` nem `:composeApp:check`. A
+  remoção do `reboColunasCanal` foi feita sem compilar: o que a sustenta é a busca de 0
+  ocorrências em código Kotlin mais as duas travas de texto, não uma execução de teste.
 - **Chamadas de rede reais.** O cliente Ktor foi escrito, compilado e linkado, e nunca
-  executado: nenhuma requisição ao `http://192.168.18.9:8096` saiu desta máquina, nem `/Users`,
-  nem `/Items`, nem `/LiveTv/Channels`. As strings `X-Emby-Token`, `/Users` e
-  `LiveTv/Channels` estão no binário, o que prova que o caminho foi linkado, não que o servidor
-  responde. O ATS do `Info.plist` libera HTTP local e não foi exercitado.
+  executado: nenhuma requisição ao `http://192.168.18.9:8899` saiu do app nesta máquina, nem
+  `/catalogo`, nem `/catalogo/item`, nem `/catalogo/episodios`, nem `/catalogo/busca`, nem
+  `/progresso`, nem `/preparar`, nem `/mp4`. As rotas estão no código e o caminho foi linkado;
+  quem responde de verdade foi conferido fora do app, com `node scripts/prova-dtos.mjs` e com
+  `curl`, não pelo app. O ATS do `Info.plist` libera HTTP local e não foi exercitado dentro do
+  app.
 - **Decodificar imagem remota.** `Imagens.obter` usa `decodeToImageBitmap` de
   `ui-graphics`; a existência da função no klib do Compose 1.11.1 foi conferida, mas nenhum
   byte de JPEG foi decodificado nesta rodada. Se falhar em execução, o cartão fica com o
@@ -153,9 +186,27 @@ máquina, e é isso que separa "compila e entra no IPA" de "desenha e lê o acer
   Android executada e não existe módulo de launcher Android nesta rodada. O actual Android de
   `criarClienteHttp` usa `HttpClient { }` sem motor declarado e os ajustes ficam em memória:
   não é executável, existe para o módulo compilar.
-- **Player e download.** `TelaFicha` mostra `ReboRotulos.PENDENTE_REPRODUTOR` no lugar de
-  reproduzir, e `TelaDownloads` é uma fila vazia declarada. Nenhum arquivo é baixado, nem
-  tocado.
+- **Player e download.** O player existe (`TelaPlayer.kt` mais `PlayerNativo.ios.kt`, que abre
+  `AVPlayerViewController` em tela cheia) e nunca executou: nenhum vídeo foi aberto, nem
+  pausado, nem retomado num aparelho, e nem a gravação de posição a cada 5 s por `/progresso` foi
+  exercitada. `TelaDownloads` continua uma fila vazia declarada, e nenhum arquivo é baixado.
+- **Som com a chave física no silencioso.** `PlayerNativo.ios.kt` chama
+  `AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayback, error = null)`,
+  não define `mode` e nunca chama `setActive`. A documentação da Apple sobre a categoria
+  `playback` diz, textualmente, que com ela o áudio do app continua com a chave Ring/Silent no
+  silencioso e com a tela travada. Isso é documentação mais leitura de código, não medição:
+  nenhum aparelho desta máquina tocou áudio com a chave no silencioso. O efeito colateral também
+  não foi medido: `playback` é não mixável por padrão, então ativar a sessão interrompe o áudio
+  de outro app, e o `fechar()` não desativa a sessão.
+- **Conta da duração até a barra de progresso.** A cadeia é `AVPlayerItem.duration()` em
+  `CValue<CMTime>` convertida por `CMTimeGetSeconds` para segundos, entregue ao `aoSalvar` de
+  `TelaPlayer.kt`, gravada em `EnvioDeProgressoDto` (`pos` e `duracao` em segundos, como o
+  comentário do DTO declara), lida de volta em `ProgressoDaMidia.fracao = pos / duracao` e
+  desenhada por `ReboBarraProgresso(fracao)`. A conta foi conferida por leitura de código e não
+  tem erro de unidade: o `600` de `CMTimeMakeWithSeconds(5.0, 600)` é a escala de `timescale`,
+  não um multiplicador, e não há divisão por 600 em lugar nenhum. O que não está provado é a
+  conta com número real de aparelho: `duracao` 0 ou `NaN` (arquivo ainda não preparado) cai no
+  guarda `duracao > 0.0` e a barra simplesmente não aparece, e isso só se mede tocando.
 - **Rótulos e formato fora do token.** Depois da reimportação da 1.1.0, `ReboRotulos` caiu de
   59 para 43 constantes: 16 saíram e as 20 leituras correspondentes em 9 arquivos passaram a
   ler `ReboTextos.Interface.*`. Continuam escritos à mão o que `ReboTextos` não cobre:
@@ -173,27 +224,54 @@ máquina, e é isso que separa "compila e entra no IPA" de "desenha e lê o acer
 
 | # | id | commit | resultado | passo que falhou | duração do job | minutos cobrados (fator 10) |
 |---|---|---|---|---|---|---|
-| 1 | 45092332982 | `0d828ec` | failure | Xcode archive sem assinatura | 238 s (4m58s) | 39 min |
-| 2 | 45093782673 | `38dd978` | failure | Xcode archive sem assinatura | 201 s (3m21s) | 33 min |
-| 3 | 45094376845 | `8e72fa0` | success | nenhum | 208 s (3m28s) | 34 min |
-| 4 | 45095174609 | `8e72fa0` (tag `v0.1.0`) | success | nenhum | 193 s (3m13s) | 32 min |
-| 5 | 45101733957 | `83b9db0` | success | nenhum | 261 s (4m21s) | 43 min |
-| 6 | 45103365358 | `d3f6969` | success | nenhum | 227 s (3m47s) | 37 min |
-| 7 | 45107159058 | `61ddda1` | success | nenhum | 216 s (3m36s) | 36 min |
-| 8 | 45112444059 | `c6252aa` | success | nenhum | 241 s (4m01s) | 40 min |
-| 9 | 45166068336 | `4e4cbe2` | success | nenhum | 272 s (4m32s) | 45 min |
-| 10 | 45177622503 | `2b99e44` | success | nenhum | 269 s (4m29s) | 44 min |
-| 11 | 45206725111 | `fb9eb94` | success | nenhum | 275 s (4m35s) | 45 min |
+| 1 | 45092332982 | `0d828ec` | failure | Xcode archive sem assinatura | 238 s (3m58s) | 40 |
+| 2 | 45093782673 | `38dd978` | failure | Xcode archive sem assinatura | 201 s (3m21s) | 40 |
+| 3 | 45094376845 | `8e72fa0` | success | nenhum | 208 s (3m28s) | 40 |
+| 4 | 45095174609 | `8e72fa0` (tag `v0.1.0`) | success | nenhum | 193 s (3m13s) | 40 |
+| 5 | 45101733957 | `83b9db0` | success | nenhum | 261 s (4m21s) | 50 |
+| 6 | 45103365358 | `d3f6969` | success | nenhum | 227 s (3m47s) | 40 |
+| 7 | 45107159058 | `61ddda1` | success | nenhum | 216 s (3m36s) | 40 |
+| 8 | 45112444059 | `c6252aa` | success | nenhum | 241 s (4m01s) | 50 |
+| 9 | 45166068336 | `4e4cbe2` | success | nenhum | 272 s (4m32s) | 50 |
+| 10 | 45177622503 | `2b99e44` | success | nenhum | 312 s (5m12s) | 60 |
+| 11 | 45206725111 | `fb9eb94` | success | nenhum | 275 s (4m35s) | 50 |
+| 12 | 45417125948 | `87b276c` | failure | nenhum passo rodou | 3 s | 0 |
+| 13 | 45420483195 | `87b276c` | cancelled | nenhum passo rodou | 299 s | 0 |
+| 14 | 45421456505 | `87b276c` | failure | nenhum passo rodou | 2 s | 0 |
+| 15 | 45426838916 | `87b276c` | cancelled | nenhum passo rodou | 908 s | 0 |
+| 16 | 45429904870 | `87b276c` | failure | Compilar Kotlin (iOS arm64) | 112 s (1m52s) | 20 |
+| 17 | 45430543796 | `87b276c` | failure | Compilar Kotlin (iOS arm64) | 90 s (1m30s) | 20 |
+| 18 | 45431926672 | `bde22f4` | success | nenhum | 726 s (12m06s) | 130 |
+| 19 | 45438716020 | `413a3b2` | cancelled | nenhum passo rodou | 902 s | 0 |
+| 20 | 45441716899 | `413a3b2` | success | nenhum | 619 s (10m19s) | 110 |
+| 21 | 45444677745 | `91949f6` | success | nenhum | 584 s (9m44s) | 100 |
+| 22 | 45484406692 | `91949f6` | failure | nenhum passo rodou | 3 s | 0 |
+| 23 | 45484528123 | `91949f6` | failure | nenhum passo rodou | 213 s | 0 |
+| 24 | 45488613486 | `91949f6` | success | nenhum | 648 s (10m48s) | 110 |
+| 25 | 45522164407 | `ea90896` | failure | nenhum passo rodou | 2 s | 0 |
+| 26 | 45536834723 | `e5713a4` | failure | nenhum passo rodou | 3 s | 0 |
+| 27 | 45537238090 | `e5713a4` | failure | Compilar Kotlin (iOS arm64) | 120 s (2m00s) | 20 |
+| 28 | 45540738688 | `e4ebc74` | failure | Compilar Kotlin (iOS arm64) | 121 s (2m01s) | 30 |
+| 29 | 45541187861 | `01d1149` | success | nenhum | 801 s (13m21s) | 140 |
 
-Total gasto até aqui: a soma real dos onze jobs é 2.601 s = **43 minutos e 21 segundos de
-runner macOS**, cobrados como **433,5 minutos** dos 2.000 do mês. Sobram 1.566,5 minutos
-cobrados, que dão 156,65 minutos de runner macOS, cerca de 44 builds de 3m30s.
+Fora da tabela, o workflow temporário "Prova AVFoundation" (arquivo apagado no commit `145f9c0`)
+teve 7 disparos entre 24 e 25/11: 4 verdes (114, 109, 126 e 99 s), 2 vermelhos (124 e 109 s) e 1
+que não rodou (0 s, disparo por push). Somam 681 s de runner, 140 minutos cobrados no pior caso.
 
-Cuidado com a leitura: os minutos da coluna acima são **minutos cobrados** (duração do job
-vezes 10, truncada para baixo em cada run, o que dá 383 no total) e não minutos de runner
-macOS. A soma dos resumos de run fica alguns minutos abaixo dos 387,7 cobrados de verdade,
-porque cada resumo trunca o próprio número. O eixo da conta está no `README.md`: 2.000
-dividido pelo fator 10 dá 200 minutos de runner macOS no mês.
+Total gasto até aqui: **7.146 s de runner macOS**, que são **119 minutos e 6 segundos**,
+cobrados entre 1.191 minutos (sem arredondar) e **1.320 minutos** (com cada job arredondado
+para cima). No pior caso sobram 680 minutos cobrados, que dão **68 minutos de runner macOS**;
+no melhor, 809, que dão 81.
+
+Cuidado com a leitura: a coluna acima é de **minutos cobrados** (duração dividida por 60,
+arredondada para cima, vezes 10) e não de minutos de runner macOS. Ela soma 1.180 nos 29 runs do
+workflow "IPA iOS" e 140 nos 7 do "Prova AVFoundation", 1.320 no total, que é o pior caso. As
+linhas antigas desta tabela truncavam para baixo e os onze primeiros runs apareciam com 2.601 s:
+relidos pela API, eles somam 2.644 s, e o run #10 tem 312 s de job (os 269 s que estavam aqui
+eram o cronômetro do próprio workflow, não a duração do job). Os nove runs com job de zero passo
+entram com duração de run, mas com 0 minuto cobrado, porque runner que não rodou não fatura. O
+eixo da conta está no `README.md`: 2.000 dividido pelo fator 10 dá 200 minutos de runner macOS
+no mês.
 
 ### Run 1: erro exato
 
@@ -312,6 +390,62 @@ O commit `fb9eb94` reimportou os tokens, apontou 20 leituras para `ReboTextos.In
 com a divergência de valor declarada no KDoc. O passo Android saiu `success` em 10 s e
 imprimiu `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)`.
 
+### Run 29: o primeiro IPA verde com o player nativo
+
+Run 45541187861, workflow "IPA iOS", `workflow_dispatch` na branch `main`, commit `01d1149`,
+25/11/2026 03:36:53 UTC, `success` às 03:50:19 UTC. Job único "Compilar IPA sem assinatura", de
+03:36:58 a 03:50:19 UTC: 801 s (13m21s), 140 minutos cobrados no pior caso.
+
+As linhas do log que provam compilação e link, literais (só sem o prefixo do passo e sem os
+códigos de cor do console):
+
+```
+2026-11-25T03:38:10.6471700Z ./gradlew :composeApp:compileKotlinIosArm64 --stacktrace --console=plain 2>&1 | tee kotlin-compile.log
+2026-11-25T03:38:46.0879850Z > Task :composeApp:compileKotlinIosArm64
+2026-11-25T03:38:46.3578520Z BUILD SUCCESSFUL in 35s
+2026-11-25T03:48:40.2635370Z Gradle: :composeApp:linkReleaseFrameworkIosArm64 (CONFIGURATION=Release SDK_NAME=iphoneos26.5)
+2026-11-25T03:48:40.2853570Z BUILD SUCCESSFUL in 9m 39s
+```
+
+O que separa as duas: entre 03:38:46 e 03:48:40 o log mostra
+`> Task :composeApp:compileKotlinIosArm64 UP-TO-DATE` e
+`> Task :composeApp:linkReleaseFrameworkIosArm64`, dentro do `xcodebuild archive` chamado pelo
+passo "Xcode archive sem assinatura". O compile leva 35 s e o link Release, 9m39s: é a
+explicação medida do job de 13m21s contra os 4m35s do run #11. A causa do link ser lento não foi
+investigada além da medição.
+
+As advertências do build, todas não fatais: `'expect'/'actual' classes (including interfaces,
+objects, annotations, enums, and 'actual' typealiases) are in Beta` em
+`commonMain/.../player/PlayerNativo.kt:15:10` e em
+`iosMain/.../player/PlayerNativo.ios.kt:38:10`, e `Condition is always 'true'` em
+`commonMain/.../ui/telas/TelaFicha.kt:201:34`. O passo extra do Android roda depois, com
+`BUILD SUCCESSFUL in 38s` e `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)`, e a
+advertência `PlayerNativo.android.kt:9:10` no mesmo log.
+
+Empacotamento: `xcodebuild archive` com `MARKETING_VERSION=0.1.0 CURRENT_PROJECT_VERSION=202611250338`,
+`APP_BUILD: 202611250338`, dSYM copiado às 03:48:59, `zip -qry Rebobina.ipa Payload` e
+`-rw-r--r-- 1 runner staff 10691419 Nov 25 03:49 Rebobina.ipa` no passo "Empacotar IPA".
+Artefatos publicados: `rebobina-ios-ipa-29` com 10.641.875 bytes e `rebobina-ios-dsym-29` com
+8.227.392 bytes. Baixado aqui, o `Rebobina.ipa` tem 10.691.419 bytes e sha256
+`214143f718ad73ac089ca1e10c9a39042f5cff893e8dfaeb602271bcc12fbba4`, e o binário
+`Payload/Rebobina.app/Rebobina` tem 29.681.600 bytes.
+
+Link: nenhuma linha `Undefined symbols` no log inteiro (2.044 linhas lidas), e os `LC_LOAD_DYLIB`
+do binário citam `/System/Library/Frameworks/AVFAudio.framework/AVFAudio`,
+`/System/Library/Frameworks/AVKit.framework/AVKit`,
+`/System/Library/Frameworks/AVFoundation.framework/AVFoundation` e
+`/System/Library/Frameworks/CoreMedia.framework/CoreMedia`, uma vez cada. O
+`project.pbxproj` do `iosApp` tem `OTHER_LDFLAGS` zero vezes, e o commit `145f9c0` só apagou o
+workflow temporário: `git diff 01d1149 HEAD -- iosApp` sai vazio, então o pbxproj do run 29 é o
+desta árvore. No log, o comando final do `clang` que linka o app não lista framework nenhum:
+ele recebe os argumentos por `@.../Rebobina-linker-args.resp`, e o conteúdo desse arquivo não
+está no log. O que se pode afirmar com evidência, e está no parágrafo acima, é que o link passou
+sem `OTHER_LDFLAGS` e que o binário saiu com as quatro frameworks. A explicação que eu adoto,
+e que é inferência e não medição, é o autolink do Kotlin/Native: as bibliotecas de plataforma do
+cinterop gravam as opções `-framework` nos objetos do framework estático, e o `ld` as aplica. A
+prova disso exigiria abrir o `ComposeApp.framework` e achar os registros, o que não foi feito
+nesta rodada.
+
 ## Suposições visíveis
 
 1. Assumi que o alvo mínimo pedido é exatamente 17.0, e não manter 16.0, porque a decisão do
@@ -386,6 +520,29 @@ imprimiu `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)`.
     `ReboTextos.Interface.Player.Pausado` e nenhuma tela desta rodada mostra rótulo de
     pausado. Por isso o briefing contava 17 constantes locais para 17 chaves e a conta real
     foi 16 apagadas, 1 mantida e 1 chave sem constante de origem.
+23. Assumi que job que não executou nenhum passo não é faturado, e por isso os nove runs com job
+    de zero passo entram com 0 minuto na tabela. A base é indireta: não houve runner, e a conta
+    do GitHub é sobre minutos de runner. Não reconferi essa regra na documentação nesta rodada.
+24. Assumi que o GitHub arredonda cada job para cima ao faturar, como já estava escrito no
+    `README.md`. Como não reconferi a regra, a tabela mostra o pior caso e o texto dá também o
+    número sem arredondar; a diferença entre eles é de 129 minutos cobrados.
+25. Assumi que achar no binário a string que só um arquivo de `iosMain` tem prova que aquele
+    arquivo entrou no link. As quatro strings escolhidas (`rebobina.ultimoErro`, `iPhone (iOS)`,
+    `rebobina.endereco` e as classes `AVPlayerViewController` e `AVAudioSession`) são literais de
+    um único arquivo cada, conferido por busca no código; a busca de bytes é cega a origem, então
+    a prova é de presença, não de exclusividade absoluta.
+26. Assumi que as entradas `LC_LOAD_DYLIB` do binário são a prova de que AVFAudio, AVKit,
+    AVFoundation e CoreMedia foram linkados, e que a ausência de `OTHER_LDFLAGS` no pbxproj
+    significa que o link não dependeu dele. Não abri o código do Kotlin/Native para ver o
+    registro de autolink, não abri o `Rebobina-linker-args.resp` que leva os argumentos ao
+    `clang` (ele fica no runner e não vem no log) e não liguei uma build sem as frameworks para
+    comparar.
+27. Assumi que `AVAudioSessionCategoryPlayback` é a categoria que a documentação da Apple
+    descreve como "continua tocando com a chave no silencioso", pelo texto da documentação da
+    categoria, e não pela API desta versão do SDK. Não medi em aparelho.
+28. Assumi que remover `reboColunasCanal` não muda comportamento nenhum porque não há chamador em
+    nenhum `.kt` do repositório (busca de 0 ocorrências), e não porque a remoção tenha sido
+    compilada: sem JDK, Gradle e Android SDK, nenhuma compilação nem teste rodou nesta máquina.
 
 ## Como reproduzir a conferência
 
@@ -405,7 +562,18 @@ gh run download 45112444059 -R VRamses/rebobina-ios -n rebobina-ios-ipa-8
 gh run view 45094376845 -R VRamses/rebobina-ios --json conclusion,jobs
 gh run download 45094376845 -R VRamses/rebobina-ios -n rebobina-ios-ipa-3
 gh release view v0.1.0 -R VRamses/rebobina-ios --json assets
+
+# run 29: o IPA com o player nativo
+gh run view 45541187861 -R VRamses/rebobina-ios --json conclusion,jobs,runStartedAt,updatedAt
+gh run view 45541187861 -R VRamses/rebobina-ios --log > run29.log
+gh api repos/VRamses/rebobina-ios/actions/runs/45541187861/artifacts
+gh run download 45541187861 -R VRamses/rebobina-ios -n rebobina-ios-ipa-29
 ```
+
+Conferido nesta máquina, para o IPA baixado: `Get-FileHash` do `Rebobina.ipa`, construção do
+`Payload/` com `System.IO.Compression.ZipFile` para medir o binário, busca de bytes em UTF-8 e
+UTF-16LE para as strings de cada arquivo de `iosMain`, e leitura dos `LC_LOAD_DYLIB` por busca
+das strings `/System/Library/Frameworks/` no binário.
 
 E, na pasta do repositório, a trava dos tokens, a trava do desenho e a reprodução do gerado:
 

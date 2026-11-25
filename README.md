@@ -24,11 +24,21 @@ nem guia de programação. Ajustes ficou só com o endereço, porque o catálogo
 player abre o `AVPlayerViewController` em tela cheia quando o arquivo fica pronto, grava a
 posição a cada 5 s e fecha sozinho quando a tela é dispensada pela alça do iOS.
 
-Provado nesta rodada, no commit `ea90896`: `commonMain` compila pela tarefa
-`:composeApp:compileAndroidMain`, as duas travas passam e o servidor responde o que cada tela
-pede. **Não provado:** `iosMain` não foi compilado, porque não há toolchain Kotlin/Native nesta
-máquina e o alvo iOS só compila em macOS, e nenhum IPA desta rodada existe: o GitHub recusa o
-build por cobrança. Detalhe e evidência em [docs/ESTADO.md](docs/ESTADO.md).
+Provado nesta rodada: `iosMain` compila e linka no runner. O run 29 (id 45541187861, commit
+`01d1149`) saiu verde em 25/11/2026, e o log mostra
+`> Task :composeApp:compileKotlinIosArm64` com `BUILD SUCCESSFUL in 35s` e depois
+`> Task :composeApp:linkReleaseFrameworkIosArm64` com `BUILD SUCCESSFUL in 9m 39s`. O artefato
+`rebobina-ios-ipa-29` traz `Rebobina.ipa` de 10.691.419 bytes e sha256
+`214143f718ad73ac089ca1e10c9a39042f5cff893e8dfaeb602271bcc12fbba4`, com o binário `Rebobina` de
+29.681.600 bytes. As três frameworks que o player usa aparecem nas dylibs do binário
+(`AVFAudio`, `AVKit` e `AVFoundation`, cada uma em `/System/Library/Frameworks/`), sem nenhum
+`OTHER_LDFLAGS` no `project.pbxproj`. `commonMain` também compila para Android no mesmo commit:
+o passo extra imprime `ANDROID_COMPILOU=sim (tarefa :composeApp:compileAndroidMain)`.
+
+**Não provado:** abrir o app num iPhone, a tela desenhada em aparelho, a chamada ao servidor em
+execução e o som com a chave física no silencioso. Os testes de `commonTest` não rodam em lugar
+nenhum: o workflow não tem passo de teste e esta máquina não tem JDK nem Android SDK. Detalhe e
+evidência em [docs/ESTADO.md](docs/ESTADO.md).
 
 Os tokens de desenho (cor, tipo, espaço, raio, movimento e os textos de estado) continuam
 copiados do `rebobina-servidor` na versão 1.1.0, com o Kotlin deles gerado e travado no
@@ -37,14 +47,19 @@ build e no CI. A camada que liga tela e token mora em `ui/base/`, e uma trava lo
 seções [Os tokens de desenho](#os-tokens-de-desenho) e
 [As telas e a camada de desenho](#as-telas-e-a-camada-de-desenho).
 
-O build do IPA já foi provado: o run #9 (id 45166068336) gerou o artefato
-`rebobina-ios-ipa-9` com `Rebobina.ipa` de 9.170.102 bytes (8,75 MiB), sha256
-`bda93e37ce16644688dc7339eddd4e7a88fbbc5227c1b73082080a2dfc35e7fb`, e o `Info.plist` de
-dentro dele diz `MinimumOSVersion 17.0`. O que ainda **não** foi provado é abrir o app num
-iPhone, porque esta rodada não tem iPhone nem Mac para testar.
-Detalhe por detalhe, com o número de cada run, em [docs/ESTADO.md](docs/ESTADO.md).
+O build mais recente, o run 29, é o primeiro IPA verde com o player nativo dentro: antes dele o
+run 28 parou em `e: .../PlayerNativo.ios.kt:69:61 Unresolved reference 'duration'.`. O job levou
+13m21s (801 s) contra 4m35s do run #11, e o log mostra onde: `BUILD SUCCESSFUL in 9m 39s` no
+link do framework Release. A diferença está medida; a causa não foi conferida. Em minutos
+cobrados, isso dá 140 em vez de 50.
 
-O último IPA medido em detalhe é o do run #11 (id 45206725111, 23/11/2026), o primeiro com a
+O `Info.plist` de dentro do IPA do run 29 não foi aberto nesta rodada; o do run #9 (id
+45166068336) dizia `MinimumOSVersion 17.0`, e o `project.pbxproj` não mudou desde então
+(`git diff 01d1149 HEAD -- iosApp` sai vazio). O que continua **não** provado é abrir o app num
+iPhone, porque não há iPhone nem Mac aqui. Detalhe por detalhe, com o número de cada run, em
+[docs/ESTADO.md](docs/ESTADO.md).
+
+O IPA medido em detalhe antes do run 29 é o do run #11 (id 45206725111, 23/11/2026), o primeiro com a
 reimportação do canônico 1.1.0: artefato `rebobina-ios-ipa-11` com 10.583.573 bytes (zip),
 `Rebobina.ipa` de 10.634.122 bytes (10,14 MiB), sha256
 `8d08d080eda6e2acd372ef2b72ae4eba07575f33a2b4dc9068155e5503c0634c`, binário `Rebobina` de
@@ -81,6 +96,13 @@ Compose. Nenhum valor de token mudou nesta rodada, que é o que o `sha256` da tr
 O run #11, que só trocou texto de interface pelo gerado, deixou o binário 200 bytes maior
 (29.581.904) e o IPA 1.092 bytes menor (10.634.122): a diferença é de string e de zip, não de
 código novo, e nenhum valor de desenho mudou.
+
+O run #29, o primeiro IPA verde com o player nativo, levou o binário para 29.681.600 bytes
+(+99.696 sobre o run #11) e o IPA para 10.691.419. O acréscimo está medido; a parcela que vem do
+`iosMain` do player e a que vem dos `LC_LOAD_DYLIB` novos das frameworks de áudio e vídeo não
+foi separada. Medido por string: as três frameworks aparecem uma vez cada nas dylibs do binário,
+e a string do app (`iPhone (iOS)`, `rebobina.ultimoErro`, `rebobina.endereco`) está lá em UTF-16LE,
+o que só pode ter vindo de `iosMain` compilado.
 
 **O alvo mínimo do app é iOS 17.** O binário linka contra o SDK do iOS 26, mas a classe
 `UIViewLayoutRegion` sai como weak import, então o dyld de um iPhone com iOS 17 a 25 não
@@ -178,42 +200,39 @@ mês, e runner macOS consome **10 vezes** a duração do job: o teto real é de 
 runner macOS por mês**, e não 2.000. São duas contas diferentes, e confundir uma com a outra
 é o erro que faz parecer que ainda sobra Mac para o mês inteiro.
 
-Conta feita, com os onze builds que já rodaram:
+Conta refeita em 25/11/2026, com os 36 disparos registrados: 29 do workflow "IPA iOS" e 7 do
+"Prova AVFoundation", que era temporário e foi apagado no commit `145f9c0`. Dez desses 36
+tiveram job sem nenhum passo executado (fila ou recusa de cobrança), então não consumiram
+runner.
 
 ```
 orçamento: 2.000 minutos cobrados por mês
 macOS: cada minuto de runner consome 10 minutos do orçamento
 teto real: 2.000 / 10 = 200 minutos de runner macOS por mês
 
-duração real de cada job, lida em gh run view <id> --json jobs:
-run 1 (falhou, 4m58s)  238 s
-run 2 (falhou, 3m21s)  201 s
-run 3 (verde, 3m28s)   208 s
-run 4 (verde, 3m13s)   193 s
-run 5 (verde, 4m21s)   261 s
-run 6 (verde, 3m47s)   227 s
-run 7 (verde, 3m36s)   216 s
-run 8 (verde, 4m01s)   241 s
-run 9 (verde, 4m32s)   272 s
-run 10 (verde, 4m29s)  269 s
-run 11 (verde, 4m35s)  275 s
-soma:                  2.601 s = 43 minutos e 21 segundos de runner macOS
+duração de job, medida em gh api .../actions/runs/<id>/jobs, só nos jobs que rodaram:
+  "IPA iOS", runs 1 a 11 (23/11)          2.644 s
+  "IPA iOS", runs 16 a 29 (24 e 25/11)    3.821 s
+  "Prova AVFoundation" (24 e 25/11)         681 s
+  soma                                    7.146 s = 119 minutos e 6 segundos de runner macOS
 
-cobrado até agora: 43,35 x 10 = 433,5 minutos dos 2.000
-sobrou: 2.000 - 433,5 = 1.566,5 minutos cobrados
-1.566,5 / 10 = 156,65 minutos de runner macOS disponíveis
-156,65 / 3,5 minutos por build = cerca de 44 builds de 3m30s neste mês
+cobrado até agora: 1.191 minutos sem arredondar
+  pior caso, com cada job arredondado para cima: 1.320 minutos
+sobrou: 2.000 - 1.320 = 680 minutos cobrados
+ 680 / 10 = 68 minutos de runner macOS no pior caso (809 / 10 = 81 no melhor)
 ```
 
-Ou seja: **sobram cerca de 156 minutos de runner macOS**, que dão cerca de 44 builds de 3m30s.
-A conta acima trunca a duração de cada job ao minuto, então o número é o piso do gasto: o
-GitHub arredonda cada job para cima ao faturar, e o total real pode ficar alguns minutos
-acima. Não reconferi essa regra na documentação do GitHub nesta rodada.
-Quando os 200 minutos de runner macOS do mês acabarem, os builds ficam
-bloqueados até a virada do ciclo de cobrança. Por isso o gatilho é manual: cada disparo é
-decisão consciente, não efeito colateral de commit. O resumo de cada run mostra a duração e a
-conta de minutos cobrados, truncando para baixo run a run, então a soma dos resumos pode
-ficar alguns minutos abaixo do total cobrado.
+Ou seja: sobram **entre 68 e 81 minutos de runner macOS**, o que dá de 5 a 6 builds do tamanho
+do run 29 (13m21s) ou cerca de 18 builds de 3m45s. O run 29 é o novo tamanho de referência: o
+job inteiro leva 13m21s porque o link Release do framework aparece com `BUILD SUCCESSFUL in
+9m 39s`, contra 4m35s de job inteiro no run #11. A diferença está medida no log; a causa não foi
+conferida. Cuidado com a leitura: a duração é do job, não do run, e o GitHub fatura cada job
+arredondando para cima, então o gasto real fica entre os dois números acima. Não reconferi essa
+regra na documentação do GitHub nesta rodada.
+
+Quando os 200 minutos de runner macOS do mês acabarem, os builds ficam bloqueados até a virada
+do ciclo de cobrança. Por isso o gatilho é manual: cada disparo é decisão consciente, não efeito
+colateral de commit.
 
 Se a cota estourar, existe a alternativa de pagar minutos avulsos, mas o combinado do
 projeto é ficar na cota gratuita.
@@ -254,7 +273,7 @@ composeApp/                               módulo Kotlin Multiplatform
     ui/tokens/ReboTokensGerado.kt         tokens de desenho, gerado (não editar à mão)
     ui/tokens/ReboTextos.kt               textos de estado e selo, gerado (não editar à mão)
   src/commonTest/kotlin/net/dynv6/rebobina/ui/base/
-    ReboAdaptativoTest.kt                 7 testes da faixa e das colunas
+    ReboAdaptativoTest.kt                 6 testes da faixa e das colunas
   src/androidMain/kotlin/net/dynv6/rebobina/
     Plataforma.android.kt                 nome da plataforma
     dados/Plataforma.android.kt           cliente sem motor e ajustes em memória
@@ -384,7 +403,10 @@ A camada de desenho, toda em `commonMain/ui/base/`:
 
 Limites declarados desta rodada, sem invenção de dado:
 
-- o player e o download não existem: os botões mostram `ReboRotulos.PENDENTE_REPRODUTOR`;
+- o player está escrito e nunca rodou num aparelho: `TelaPlayer.kt` chama `PlayerNativo.ios.kt`,
+  que abre `AVPlayerViewController` em tela cheia e grava a posição a cada 5 s, mas nenhum vídeo
+  foi aberto, pausado ou retomado num iPhone nesta rodada. O download não existe: `TelaDownloads`
+  é uma fila vazia declarada, e nenhum arquivo é baixado;
 - `ReboRotulos` e `FormatoDeTexto` (duração, temporada, episódio, tipo de mídia e separador)
   continuam texto escrito à mão porque o JSON 1.1.0 não tem frase de tela fora de `estado.*`,
   `selo.variantes.*.texto` e `interface.*`: nas outras chaves com texto o conteúdo é
@@ -398,9 +420,10 @@ Limites declarados desta rodada, sem invenção de dado:
 - o ATS do `Info.plist` libera `NSAllowsArbitraryLoads` para o catálogo e o vídeo em HTTP na
   tailnet e na rede local. É risco aceito de sideload, não recomendação: o IPA é sem assinatura.
   Nenhuma chave é guardada no aparelho, porque o serviço de catálogo não pede chave;
-- os 7 testes de `ReboAdaptativoTest` existem e nunca rodaram: o CI compila
-  `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`, não a suíte, e esta
-  máquina não tem JDK nem Gradle para rodar `iosSimulatorArm64Test`;
+- os 6 testes de `ReboAdaptativoTest` existem e nunca rodaram: o workflow não tem passo de
+  teste (só compila `:composeApp:compileKotlinIosArm64` e `:composeApp:compileAndroidMain`), e
+  esta máquina não tem JDK, Gradle nem Android SDK para rodar `iosSimulatorArm64Test` nem
+  `:composeApp:check`;
 - nenhuma tela foi vista em aparelho nesta rodada: o binário do run #11 tem 29.581.904 bytes e
   contém, em UTF-16LE, as strings `Séries` (deslocamento 28749106), `Ainda carregando`,
   `Tentar de novo`, `Sem conexão` e, em UTF-8 e UTF-16LE, `Ajustes`, `Downloads` e `Assistir`,
