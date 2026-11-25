@@ -1,6 +1,6 @@
 name: Prova AVFoundation
 
-# Temporario: compara o klib prebuild de AVFoundation com a cache criada na maquina.
+# Temporario: quais membros de AVPlayer sao extensao e quais sao da classe, e teste de compilacao.
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   prova:
-    name: Metadados de AVPlayer nos dois klibs
+    name: Extensoes de AVPlayer e compilacao de uma amostra
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -28,35 +28,52 @@ jobs:
       - name: Baixar a distribuicao Kotlin/Native
         run: ./gradlew -q :composeApp:downloadKotlinNativeDistribution --console=plain
 
-      - name: Comparar klib prebuild e cache
+      - name: Classe AVPlayer e extensoes
         run: |
           K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
           PRE="$K/klib/platform/ios_arm64/org.jetbrains.kotlin.native.platform.AVFoundation"
-          CAC="$(ls -d "$K"/klib/cache/ios_arm64-*/org.jetbrains.kotlin.native.platform.AVFoundation-cache 2>/dev/null | head -1)"
-          echo "PRE=$PRE"
-          echo "CAC=$CAC"
-          for L in "$PRE" "$CAC"; do
-            echo "############ $L"
-            if [ ! -e "$L" ]; then echo "nao existe"; continue; fi
-            du -sh "$L" || true
-            "$K/bin/klib" info "$L" > /tmp/info.txt 2>&1 || echo "info saiu com $?"
-            head -12 /tmp/info.txt || true
-            "$K/bin/klib" dump-metadata "$L" > /tmp/meta.txt 2>&1 || echo "dump-metadata saiu com $?"
-            echo "linhas de metadados: $(wc -l < /tmp/meta.txt)"
-            for t in addPeriodicTimeObserverForInterval removeTimeObserver seekToTime currentItem; do
-              echo "  $t => $(grep -c "$t" /tmp/meta.txt)"
-            done
-            echo "  --- onde aparecem ---"
-            grep -n "addPeriodicTimeObserverForInterval\|seekToTime:" /tmp/meta.txt | head -8 || true
-            echo "  --- bloco da classe AVPlayer ---"
-            awk '/class name: platform\/AVFoundation\/AVPlayer$/{f=1} f{print; c++} c>45{exit}' /tmp/meta.txt || true
-          done
+          "$K/bin/klib" dump-metadata "$PRE" > /tmp/meta.txt 2>&1 || echo "dump saiu com $?"
+          echo "linhas: $(wc -l < /tmp/meta.txt)"
+          echo "=== declaracao da classe ==="
+          grep -n "class platform/AVFoundation/AVPlayer :" /tmp/meta.txt || true
+          echo "=== extensoes declaradas com receiver AVPlayer ==="
+          grep -n "fun platform/AVFoundation/AVPlayer\." /tmp/meta.txt || true
+          echo "=== propriedades extensao com receiver AVPlayer ==="
+          grep -n "val platform/AVFoundation/AVPlayer\." /tmp/meta.txt || true
+          echo "=== bloco da classe ==="
+          awk '/public open class platform\/AVFoundation\/AVPlayer :/{f=1} f{print;c++} c>150{exit}' /tmp/meta.txt || true
 
-      - name: Qual klib o compilador realmente le
+      - name: Compilar amostra com imports explicitos
         run: |
           K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
-          cd "$GITHUB_WORKSPACE" || exit 1
-          ./gradlew :composeApp:compileKotlinIosArm64 --dry-run -q --console=plain > /tmp/dry.txt 2>&1 || echo "dry-run saiu com $?"
-          tail -5 /tmp/dry.txt || true
-          echo "--- klibs da cache ---"
-          ls "$K"/klib/cache/ios_arm64-*/ 2>/dev/null | head -20 || true
+          cat > /tmp/amostra.kt <<'EOF'
+          import kotlinx.cinterop.ExperimentalForeignApi
+          import platform.AVFoundation.AVPlayer
+          import platform.AVFoundation.AVPlayerItem
+          import platform.AVFoundation.addPeriodicTimeObserverForInterval
+          import platform.AVFoundation.removeTimeObserver
+          import platform.AVFoundation.seekToTime
+          import platform.AVFoundation.play
+          import platform.AVFoundation.pause
+          import platform.AVFoundation.currentItem
+          import platform.CoreMedia.CMTimeMakeWithSeconds
+          import platform.CoreMedia.CMTimeGetSeconds
+          import platform.Foundation.NSURL
+          import platform.darwin.dispatch_get_main_queue
+
+          @OptIn(ExperimentalForeignApi::class)
+          fun amostra(url: NSURL) {
+              val p = AVPlayer(playerItem = AVPlayerItem(uRL = url))
+              val vigia = p.addPeriodicTimeObserverForInterval(
+                  interval = CMTimeMakeWithSeconds(5.0, 600),
+                  queue = dispatch_get_main_queue(),
+                  usingBlock = { tempo -> println("t=" + CMTimeGetSeconds(tempo)) },
+              )
+              p.seekToTime(CMTimeMakeWithSeconds(1.0, 600))
+              p.play()
+              p.pause()
+              println(p.currentItem)
+              p.removeTimeObserver(vigia)
+          }
+          EOF
+          "$K/bin/konanc" -target ios_arm64 -p library -o /tmp/amostra /tmp/amostra.kt 2>&1 | head -40 || true
