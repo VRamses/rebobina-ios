@@ -1,6 +1,6 @@
 name: Prova AVFoundation
 
-# Temporario: descobre como inspecionar o klib do AVFoundation na Kotlin 2.4.10.
+# Temporario: compara o klib prebuild de AVFoundation com a cache criada na maquina.
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   prova:
-    name: Inspecionar o klib do AVFoundation
+    name: Metadados de AVPlayer nos dois klibs
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -28,42 +28,35 @@ jobs:
       - name: Baixar a distribuicao Kotlin/Native
         run: ./gradlew -q :composeApp:downloadKotlinNativeDistribution --console=plain
 
-      - name: Ferramenta klib
+      - name: Comparar klib prebuild e cache
         run: |
           K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
-          echo "K=$K"
-          "$K/bin/klib" --help > /tmp/help.txt 2>&1 || echo "help saiu com $?"
-          head -45 /tmp/help.txt || true
-
-      - name: Conteudo do klib
-        run: |
-          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
-          LIB="$K/klib/platform/ios_arm64/org.jetbrains.kotlin.native.platform.AVFoundation"
-          echo "LIB=$LIB"
-          find "$LIB" -maxdepth 3 | head -25 || true
-          echo "--- klib contents ---"
-          "$K/bin/klib" contents "$LIB" > /tmp/av.txt 2>&1 || echo "contents saiu com $?"
-          echo "linhas em /tmp/av.txt: $(wc -l < /tmp/av.txt)"
-          head -20 /tmp/av.txt || true
-          echo "--- klib dump-metadata ---"
-          "$K/bin/klib" dump-metadata "$LIB" > /tmp/av2.txt 2>&1 || echo "dump-metadata saiu com $?"
-          echo "linhas em /tmp/av2.txt: $(wc -l < /tmp/av2.txt)"
-          head -20 /tmp/av2.txt || true
-
-      - name: Procurar os nomes dentro do klib
-        run: |
-          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
-          LIB="$K/klib/platform/ios_arm64/org.jetbrains.kotlin.native.platform.AVFoundation"
-          echo "--- grep binario no diretorio do klib ---"
-          for t in addPeriodicTimeObserverForInterval removeTimeObserver seekToTime currentItem; do
-            echo "$t => $(grep -a -r -l "$t" "$LIB" 2>/dev/null | wc -l) arquivos"
+          PRE="$K/klib/platform/ios_arm64/org.jetbrains.kotlin.native.platform.AVFoundation"
+          CAC="$(ls -d "$K"/klib/cache/ios_arm64-*/org.jetbrains.kotlin.native.platform.AVFoundation-cache 2>/dev/null | head -1)"
+          echo "PRE=$PRE"
+          echo "CAC=$CAC"
+          for L in "$PRE" "$CAC"; do
+            echo "############ $L"
+            if [ ! -e "$L" ]; then echo "nao existe"; continue; fi
+            du -sh "$L" || true
+            "$K/bin/klib" info "$L" > /tmp/info.txt 2>&1 || echo "info saiu com $?"
+            head -12 /tmp/info.txt || true
+            "$K/bin/klib" dump-metadata "$L" > /tmp/meta.txt 2>&1 || echo "dump-metadata saiu com $?"
+            echo "linhas de metadados: $(wc -l < /tmp/meta.txt)"
+            for t in addPeriodicTimeObserverForInterval removeTimeObserver seekToTime currentItem; do
+              echo "  $t => $(grep -c "$t" /tmp/meta.txt)"
+            done
+            echo "  --- onde aparecem ---"
+            grep -n "addPeriodicTimeObserverForInterval\|seekToTime:" /tmp/meta.txt | head -8 || true
+            echo "  --- bloco da classe AVPlayer ---"
+            awk '/class name: platform\/AVFoundation\/AVPlayer$/{f=1} f{print; c++} c>45{exit}' /tmp/meta.txt || true
           done
-          echo "--- strings nos linkdata ---"
-          find "$LIB" -type f | head -10 || true
-          find "$LIB" -type f -exec strings -a {} + 2>/dev/null > /tmp/str.txt || true
-          echo "linhas de strings: $(wc -l < /tmp/str.txt)"
-          for t in AVPlayer addPeriodicTimeObserverForInterval removeTimeObserver seekToTime currentItem play pause rate; do
-            echo "$t => $(grep -c -x "$t" /tmp/str.txt)"
-          done
-          echo "--- linhas com Time e com Player ---"
-          grep -iE "TimeObserver|seekTo" /tmp/str.txt | sort -u | head -20 || true
+
+      - name: Qual klib o compilador realmente le
+        run: |
+          K="$(ls -d "$HOME"/.konan/kotlin-native-prebuilt-macos-* | head -1)"
+          cd "$GITHUB_WORKSPACE" || exit 1
+          ./gradlew :composeApp:compileKotlinIosArm64 --dry-run -q --console=plain > /tmp/dry.txt 2>&1 || echo "dry-run saiu com $?"
+          tail -5 /tmp/dry.txt || true
+          echo "--- klibs da cache ---"
+          ls "$K"/klib/cache/ios_arm64-*/ 2>/dev/null | head -20 || true
