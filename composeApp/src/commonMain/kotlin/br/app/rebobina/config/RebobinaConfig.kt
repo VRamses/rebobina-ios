@@ -12,13 +12,16 @@ package br.app.rebobina.config
  */
 object RebobinaConfig {
     /**
-     * Catalogo proprio do Rebobina. Nome do servidor na tailnet, que funciona tanto na rede de
-     * casa quanto fora dela; o IP fixo da rede local era o que quebrava ao sair de casa.
+     * Catalogo proprio do Rebobina no dominio proprio, com TLS. Funciona na rede de casa e fora
+     * dela, sem tailnet e sem IP fixo; o Caddy publica o catalogo na raiz do mesmo dominio.
      */
-    const val CATALOGO_BASE_URL: String = "http://servidor.tail056d02.ts.net:8899"
+    const val CATALOGO_BASE_URL: String = "https://rebobina.app.br"
 
-    /** Endereco que o app usava antes, mantido para a tela de Ajustes explicar a troca. */
+    /** Endereco da rede local que o app usava antes, mantido para a tela de Ajustes. */
     const val ENDERECO_ANTIGO: String = "http://192.168.18.99:8899"
+
+    /** Nome da tailnet que o app usava ate a 0.1.9; nao resolve mais depois da aposentadoria. */
+    const val ENDERECO_DO_TAILNET: String = "http://servidor.tail056d02.ts.net:8899"
 
     /** Tempo maximo, em segundos, para abrir conexao com o servidor. */
     const val TIMEOUT_CONEXAO_SEGUNDOS: Int = 15

@@ -2,6 +2,7 @@ package br.app.rebobina.dados
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.darwin.Darwin
+import br.app.rebobina.config.EnderecoDoCatalogo
 import br.app.rebobina.config.RebobinaConfig
 import platform.Foundation.NSUserDefaults
 
@@ -18,7 +19,8 @@ private const val CHAVE_DO_ENDERECO: String = "rebobina.endereco"
 internal actual fun lerAjustesSalvos(): AjustesSalvos {
     val padroes = NSUserDefaults.standardUserDefaults
     return AjustesSalvos(
-        endereco = padroes.stringForKey(CHAVE_DO_ENDERECO) ?: RebobinaConfig.CATALOGO_BASE_URL,
+        endereco = EnderecoDoCatalogo.migrar(padroes.stringForKey(CHAVE_DO_ENDERECO))
+            ?: RebobinaConfig.CATALOGO_BASE_URL,
     )
 }
 

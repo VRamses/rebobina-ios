@@ -6,9 +6,10 @@ Compose Multiplatform e projeto Xcode. O IPA sai sem assinatura do GitHub Action
 
 - Bundle id: `br.app.rebobina.ios`
 - Nome na tela do iPhone: Rebobina
-- Servidor do catálogo: `http://servidor.tail056d02.ts.net:8899` (HTTP, pela tailnet). Na rede
-  local o mesmo serviço responde em `http://192.168.18.99:8899`
-- Endereço configurável em Ajustes; o padrão é o da tailnet
+- Servidor do catálogo: `https://rebobina.app.br` (HTTPS, domínio próprio). O Caddy publica o
+  catálogo na raiz do domínio; na rede local o mesmo serviço também responde em
+  `http://192.168.18.99:8899`
+- Endereço configurável em Ajustes; o padrão é o domínio próprio
 - Versão do app: arquivo `rebobina.version` na raiz
 
 ## Estado atual (leia antes de baixar)
@@ -455,8 +456,9 @@ mostra o nome do usuário do acervo, ou o erro.
 
 O padrão, usado quando não há nada salvo, fica em
 `composeApp/src/commonMain/kotlin/br/app/rebobina/config/RebobinaConfig.kt`:
-`http://servidor.tail056d02.ts.net:8899`. O `Info.plist` tem a liberação de HTTP, que não precisa
-mudar se o IP mudar.
+`https://rebobina.app.br`. Endereço antigo guardado no aparelho (o nome da tailnet ou o IP da
+rede local) é migrado para o domínio na leitura: `EnderecoDoCatalogo.migrar`. O `Info.plist`
+mantém a liberação de HTTP, que continua valendo para quem apontar o app para um servidor da rede.
 
 ## Rodar no Mac, se precisar
 

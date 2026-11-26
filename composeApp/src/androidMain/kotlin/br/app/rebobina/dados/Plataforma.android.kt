@@ -1,6 +1,7 @@
 package br.app.rebobina.dados
 
 import io.ktor.client.HttpClient
+import br.app.rebobina.config.EnderecoDoCatalogo
 import br.app.rebobina.config.RebobinaConfig
 
 /**
@@ -18,7 +19,7 @@ internal actual fun criarClienteHttp(): HttpClient = HttpClient {
 private var enderecoSalvo: String? = null
 
 internal actual fun lerAjustesSalvos(): AjustesSalvos = AjustesSalvos(
-    endereco = enderecoSalvo ?: RebobinaConfig.CATALOGO_BASE_URL,
+    endereco = EnderecoDoCatalogo.migrar(enderecoSalvo) ?: RebobinaConfig.CATALOGO_BASE_URL,
 )
 
 internal actual fun gravarAjustesSalvos(ajustes: AjustesSalvos) {
