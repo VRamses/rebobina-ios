@@ -33,8 +33,8 @@ class EnderecoDoCatalogoTest {
     @Test
     fun enderecoDigitadoAMaoEhPreservado() {
         assertEquals(
-            "http://192.168.18.99:8899",
-            EnderecoDoCatalogo.migrar("http://192.168.18.99:8899"),
+            "http://192.168.18.50:8899",
+            EnderecoDoCatalogo.migrar("http://192.168.18.50:8899"),
         )
         assertEquals(
             "https://meu.servidor:8899",
