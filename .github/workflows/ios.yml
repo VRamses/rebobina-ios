@@ -98,10 +98,10 @@ jobs:
           # copia editada a mao passar; por fim o sha256 do JSON contra o .sha256.
           node scripts/conferir-tokens.mjs
           node design/tokens/gerar-kotlin.mjs \
-            --pacote net.dynv6.rebobina.ui.tokens \
-            --saida composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTokensGerado.kt \
-            --saida-textos composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTextos.kt
-          git diff --exit-code -- composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens
+            --pacote br.app.rebobina.ui.tokens \
+            --saida composeApp/src/commonMain/kotlin/br/app/rebobina/ui/tokens/ReboTokensGerado.kt \
+            --saida-textos composeApp/src/commonMain/kotlin/br/app/rebobina/ui/tokens/ReboTextos.kt
+          git diff --exit-code -- composeApp/src/commonMain/kotlin/br/app/rebobina/ui/tokens
           ESPERADO="$(cut -d ' ' -f1 design/tokens/rebobina-tokens.sha256 | tr 'A-Z' 'a-z')"
           REAL="$(shasum -a 256 design/tokens/rebobina-tokens.json | cut -d ' ' -f1)"
           echo "sha256 do JSON:    $REAL"

@@ -18,7 +18,7 @@ kotlin {
     }
 
     androidLibrary {
-        namespace = "net.dynv6.rebobina"
+        namespace = "br.app.rebobina"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

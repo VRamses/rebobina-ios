@@ -236,7 +236,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.dynv6.rebobina.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = br.app.rebobina.ios;
 				PRODUCT_NAME = Rebobina;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = NO;
@@ -264,7 +264,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.dynv6.rebobina.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = br.app.rebobina.ios;
 				PRODUCT_NAME = Rebobina;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = NO;

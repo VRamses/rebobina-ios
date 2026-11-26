@@ -52,9 +52,9 @@ const todasAsTelas = [];
 
 for (const arquivo of arquivosKotlin(fonte)) {
   const completo = relative(fonte, arquivo).replaceAll("\\", "/");
-  const corte = completo.indexOf("net/dynv6/rebobina/");
+  const corte = completo.indexOf("br/app/rebobina/");
   if (corte < 0) continue;
-  const relativo = completo.slice(corte + "net/dynv6/rebobina/".length);
+  const relativo = completo.slice(corte + "br/app/rebobina/".length);
   const linhas = readFileSync(arquivo, "utf8").split(/\r?\n/);
   const emTela = PASTAS_DE_TELA.some((p) => relativo.startsWith(p + "/"));
   if (emTela) todasAsTelas.push({ relativo, texto: linhas.join("\n") });

@@ -22,7 +22,7 @@ import { spawnSync } from 'node:child_process'
 const AQUI = dirname(fileURLToPath(import.meta.url))
 const RAIZ = join(AQUI, '..')
 const PASTA = join(RAIZ, 'design', 'tokens')
-const PACOTE = 'net.dynv6.rebobina.ui.tokens'
+const PACOTE = 'br.app.rebobina.ui.tokens'
 const PACOTE_EM_PASTA = PACOTE.split('.').join('/')
 
 const JSON_DE_TOKENS = join(PASTA, 'rebobina-tokens.json')

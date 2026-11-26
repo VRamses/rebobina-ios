@@ -4,7 +4,7 @@ App do Rebobina para iPhone, feito em Compose Multiplatform (Kotlin), com projet
 Compose Multiplatform e projeto Xcode. O IPA sai sem assinatura do GitHub Actions e
 é assinado no Windows pelo Sideloadly ou pelo AltStore com a sua conta Apple gratuita.
 
-- Bundle id: `net.dynv6.rebobina.ios`
+- Bundle id: `br.app.rebobina.ios`
 - Nome na tela do iPhone: Rebobina
 - Servidor do catálogo: `http://servidor.tail056d02.ts.net:8899` (HTTP, pela tailnet). Na rede
   local o mesmo serviço responde em `http://192.168.18.99:8899`
@@ -246,7 +246,7 @@ gradle.properties                         opções do Gradle
 rebobina.version                          versão do app (uma fonte só)
 composeApp/                               módulo Kotlin Multiplatform
   build.gradle.kts                        alvos iosArm64, iosSimulatorArm64 e Android
-  src/commonMain/kotlin/net/dynv6/rebobina/
+  src/commonMain/kotlin/br/app/rebobina/
     App.kt                                navegação: quatro abas, ficha e player
     config/RebobinaConfig.kt              único lugar com o endereço padrão do servidor
     dados/Acervo.kt                       catálogo traduzido para as telas
@@ -272,13 +272,13 @@ composeApp/                               módulo Kotlin Multiplatform
     ui/telas/TelaAjustes.kt               endereço e teste de conexão
     ui/tokens/ReboTokensGerado.kt         tokens de desenho, gerado (não editar à mão)
     ui/tokens/ReboTextos.kt               textos de estado e selo, gerado (não editar à mão)
-  src/commonTest/kotlin/net/dynv6/rebobina/ui/base/
+  src/commonTest/kotlin/br/app/rebobina/ui/base/
     ReboAdaptativoTest.kt                 6 testes da faixa e das colunas
-  src/androidMain/kotlin/net/dynv6/rebobina/
+  src/androidMain/kotlin/br/app/rebobina/
     Plataforma.android.kt                 nome da plataforma
     dados/Plataforma.android.kt           cliente sem motor e ajustes em memória
     player/PlayerNativo.android.kt        player vazio: vídeo é do app Android
-  src/iosMain/kotlin/net/dynv6/rebobina/
+  src/iosMain/kotlin/br/app/rebobina/
     MainViewController.kt                 ponte Kotlin para o Swift, guarda a raiz do app
     Plataforma.ios.kt                     nome da plataforma
     dados/Plataforma.ios.kt               cliente Darwin e ajustes no NSUserDefaults
@@ -334,14 +334,14 @@ Comando que gera os dois, e é o mesmo que o CI roda:
 
 ```
 node design/tokens/gerar-kotlin.mjs \
-  --pacote net.dynv6.rebobina.ui.tokens \
-  --saida composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTokensGerado.kt \
-  --saida-textos composeApp/src/commonMain/kotlin/net/dynv6/rebobina/ui/tokens/ReboTextos.kt
+  --pacote br.app.rebobina.ui.tokens \
+  --saida composeApp/src/commonMain/kotlin/br/app/rebobina/ui/tokens/ReboTokensGerado.kt \
+  --saida-textos composeApp/src/commonMain/kotlin/br/app/rebobina/ui/tokens/ReboTextos.kt
 ```
 
 Com a linha do pacote normalizada, os dois saem idênticos aos arquivos de referência do
 canônico, que têm 12.683 e 2.997 bytes porque o pacote de lá é `rebobina.android.ui.base.rebo`,
-um caractere mais longo que `net.dynv6.rebobina.ui.tokens`.
+um caractere mais longo que `br.app.rebobina.ui.tokens`.
 
 A trava roda em dois lugares com a mesma implementação, `scripts/conferir-tokens.mjs`:
 
@@ -454,7 +454,7 @@ recriado quando o endereço muda. **Testar conexão** faz um `GET /catalogo` no 
 mostra o nome do usuário do acervo, ou o erro.
 
 O padrão, usado quando não há nada salvo, fica em
-`composeApp/src/commonMain/kotlin/net/dynv6/rebobina/config/RebobinaConfig.kt`:
+`composeApp/src/commonMain/kotlin/br/app/rebobina/config/RebobinaConfig.kt`:
 `http://servidor.tail056d02.ts.net:8899`. O `Info.plist` tem a liberação de HTTP, que não precisa
 mudar se o IP mudar.
 
